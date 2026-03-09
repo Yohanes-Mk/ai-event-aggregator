@@ -1,4 +1,4 @@
-from .scraper import scrape_channel, fetch_latest_videos, fetch_transcript, Video
+from .scraper import YouTubeScraper, Video, Channel
 from .channels import CHANNELS
 
-__all__ = ["scrape_channel", "fetch_latest_videos", "fetch_transcript", "Video", "CHANNELS"]
+__all__ = ["YouTubeScraper", "Video", "Channel", "CHANNELS"]
