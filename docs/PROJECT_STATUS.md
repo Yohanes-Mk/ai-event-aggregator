@@ -497,3 +497,36 @@ ai-event-agreegator/
 1. Wire up APScheduler to run the full pipeline on a schedule
 2. Build API layer to serve digest data
 3. Build frontend or notification output (email / Slack digest)
+
+---
+
+## 2026-03-11 — Channel ID resolver + interactive selector (shelved)
+
+### What was built
+
+**`scripts/get_channel_id.py`**
+- Standalone CLI to resolve a YouTube channel ID from a handle, name, or full URL
+- Uses `httpx` + regex on the raw page HTML (no API key needed)
+- Tries 5 regex patterns: `channelId`, `externalChannelId`, `ucid`, `channel_id=`, `browseId`
+- Usage: `uv run scripts/get_channel_id.py fireship` → `UC2Xd-TjJByJyK2w1zNwY0zQ`
+- Direct `/channel/UCxxx` URLs return the ID immediately (no HTTP request)
+
+**`app/scrapers/youtube/resolver.py`** (new)
+- Same `get_channel_id()` logic extracted as an importable module
+- Exported from `app/scrapers/youtube/__init__.py`
+
+**`app/scrapers/youtube/selector.py`** (new, shelved for later)
+- `select_channels()` — interactive CLI prompt to pick channels from the library and optionally add new ones
+- Supports session-only additions or permanent save to `channels.py`
+- Not wired into `main.py` yet — will be added when interactive mode is needed
+
+### What works
+- `uv run scripts/get_channel_id.py fireship` → resolves correctly
+- Direct channel URLs work immediately (no HTTP needed)
+- Some channels (e.g. `@theo-t3gg`) return "Not found" — YouTube doesn't embed channel ID in all page types; workaround is to use the direct `/channel/UCxxx` URL
+
+### What's next
+1. Wire up APScheduler to run the full pipeline on a schedule
+2. Build API layer to serve digest data
+3. Build frontend or notification output (email / Slack digest)
+4. Wire `select_channels()` from `selector.py` into `main.py` when interactive channel picking is needed
