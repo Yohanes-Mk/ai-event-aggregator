@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import feedparser
+import httpx
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, HttpUrl
 from youtube_transcript_api import (
@@ -24,6 +25,7 @@ class Video(BaseModel):
     channel_id: str
     transcript: str | None = None
 
+
 RSS_BASE = "https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
 
 
@@ -32,8 +34,20 @@ class YouTubeScraper:
         self.channel_id = channel_id
         self.channel_name = channel_name
 
-    def fetch_latest_videos(self, within_days: int = 7) -> list[Video]:
-        """Fetch recent videos from the channel via its RSS feed."""
+    def _is_short(self, video_id: str) -> bool:
+        """Return True if the video is a YouTube Short."""
+        try:
+            r = httpx.head(
+                f"https://www.youtube.com/shorts/{video_id}",
+                follow_redirects=False,
+                timeout=5,
+            )
+            return r.status_code == 200
+        except Exception:
+            return False
+
+    def fetch_latest_videos(self, within_days: int = 14) -> list[Video]:
+        """Fetch recent videos from the channel via its RSS feed, excluding Shorts."""
         url = RSS_BASE.format(channel_id=self.channel_id)
         feed = feedparser.parse(url)
 
@@ -43,6 +57,8 @@ class YouTubeScraper:
         for entry in feed.entries:
             published_at = datetime(*entry.published_parsed[:6], tzinfo=timezone.utc)
             if published_at < cutoff:
+                continue
+            if self._is_short(entry.yt_videoid):
                 continue
 
             videos.append(
@@ -79,20 +95,25 @@ class YouTubeScraper:
         try:
             segments = YouTubeTranscriptApi().fetch(video.video_id)
             transcript = " ".join(s.text for s in segments)
-        except (TranscriptsDisabled, NoTranscriptFound):
+        except TranscriptsDisabled, NoTranscriptFound:
             transcript = None
         return video.model_copy(update={"transcript": transcript})
 
-    def scrape(self, within_days: int = 14, with_transcripts: bool = True) -> list[Video]:
+    def scrape(
+        self, within_days: int = 14, with_transcripts: bool = True
+    ) -> list[Video]:
         """Full pipeline: fetch latest videos + optionally attach transcripts."""
         videos = self.fetch_latest_videos(within_days)
         if with_transcripts:
             videos = [self.fetch_transcript(v) for v in videos]
         return videos
-    
+
+
 if __name__ == "__main__":
     # Quick manual test
-    scraper = YouTubeScraper(channel_id="UCsBjURrPoezykLs9EqgamOA", channel_name="Fireship")
+    scraper = YouTubeScraper(
+        channel_id="UCsBjURrPoezykLs9EqgamOA", channel_name="Fireship"
+    )
     videos = scraper.scrape(with_transcripts=False)
     for v in videos:
         print(f"{v.title} ({v.published_at.date()}) — {v.url}")

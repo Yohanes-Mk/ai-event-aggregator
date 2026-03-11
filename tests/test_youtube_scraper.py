@@ -19,7 +19,7 @@ def test_fetch_latest_video_returns_video():
         assert video is not None, f"Expected a video for {ch['name']}, got None"
         assert isinstance(video, Video)
         assert video.title
-        assert video.url.startswith("https://www.youtube.com")
+        assert str(video.url).startswith("https://www.youtube.com")
         assert video.video_id
         assert video.channel_name == ch["name"]
         assert video.channel_id == ch["channel_id"]
