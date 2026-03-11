@@ -10,6 +10,7 @@ dependencies = [
     "beautifulsoup4>=4.14.3",
     "feedparser>=6.0.12",
     "fpdf2>=2.8.7",
+    "google-genai>=1.66.0",
     "httpx>=0.28.1",
     "icalendar>=7.0.3",
     "openai>=2.26.0",

@@ -9,6 +9,7 @@ from youtube_transcript_api import (
     YouTubeTranscriptApi,
     TranscriptsDisabled,
     NoTranscriptFound,
+    IpBlocked,
 )
 from youtube_transcript_api.proxies import WebshareProxyConfig
 
@@ -110,7 +111,7 @@ class YouTubeScraper:
         try:
             segments = _build_transcript_api().fetch(video.video_id)
             transcript = " ".join(s.text for s in segments)
-        except (TranscriptsDisabled, NoTranscriptFound):
+        except (TranscriptsDisabled, NoTranscriptFound, IpBlocked):
             transcript = None
         return video.model_copy(update={"transcript": transcript})
 

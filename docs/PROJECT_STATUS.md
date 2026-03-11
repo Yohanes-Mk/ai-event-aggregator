@@ -447,3 +447,53 @@ ai-event-agreegator/
 1. Wire up APScheduler to run both scrapers on a schedule
 2. Add OpenAI summarisation in `app/services/`
 3. Build agent logic in `agent/`
+
+---
+
+## 2026-03-11 — Digest infrastructure + OpenAI integration
+
+### What was built
+
+**`app/db/models.py`** — added `Digest` table
+- Composite PK: `(article_id, article_type)` — enables `db.merge()` upsert
+- Fields: `url`, `title`, `summary`, `tools_concepts` (YouTube only), `relevance_score` (event only, 0–100), `source`, `created_at`
+- `article_id` for events serialized as `"{title}||{start_time.isoformat()}"`
+
+**`app/db/repository.py`** — added `digest_exists()` and `save_digest()`
+
+**`agent/youtube_agent.py`** — YouTube digest agent
+- Uses `gpt-4o-mini` with `client.beta.chat.completions.parse()` (structured output)
+- Returns `YouTubeDigestResult(title, summary, tools_concepts)`
+
+**`agent/event_agent.py`** — Event digest agent
+- Uses `gpt-4o-mini` with `client.beta.chat.completions.parse()` (structured output)
+- Returns `EventDigestResult(title, summary, relevance_score)`
+
+**`app/services/process_digest.py`** — `process_digest(db)` orchestrator
+- Reads all videos + events from DB, skips already-digested items
+- Catches per-item errors without stopping the run
+
+**`main.py`** — added `load_dotenv()` + wired `process_digest(db)` at end of pipeline
+
+**`scripts/` and `Makefile`** — `make run` now runs the full pipeline end-to-end
+
+### Current full pipeline (`make run`)
+1. Scrape YouTube (last 2 days) → upsert to `youtube_videos`
+2. Scrape Events (next 1 day) → upsert to `events`
+3. Digest unprocessed videos via OpenAI → save to `digests`
+4. Digest unprocessed events via OpenAI → save to `digests`
+
+### What works
+- All 3 tables (`youtube_videos`, `events`, `digests`) populated in Beekeeper Studio
+- Digests contain AI-generated titles, summaries, tools/concepts, and relevance scores
+- Re-runs are idempotent — already-digested items are skipped
+
+### Errors hit
+- `'GEMINI_API_KEY'` KeyError — `.env` not loaded at runtime; fixed with `load_dotenv()` in `main.py`
+- Gemini free tier daily quota exhausted — switched to OpenAI `gpt-4o-mini`
+- `IpBlocked` from YouTube transcript API — added to except clause, transcript stored as `null`
+
+### What's next
+1. Wire up APScheduler to run the full pipeline on a schedule
+2. Build API layer to serve digest data
+3. Build frontend or notification output (email / Slack digest)

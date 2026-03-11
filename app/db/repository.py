@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.db.models import YouTubeVideo, Event
+from app.db.models import YouTubeVideo, Event, Digest
 from app.scrapers.youtube.scraper import Video
 from app.scrapers.events.scraper import Event as ScrapedEvent
 
@@ -41,3 +41,12 @@ def get_videos(db: Session, limit: int = 50) -> list[YouTubeVideo]:
 
 def get_events(db: Session, limit: int = 50) -> list[Event]:
     return db.query(Event).order_by(Event.start_time).limit(limit).all()
+
+
+def digest_exists(article_id: str, article_type: str, db: Session) -> bool:
+    return db.get(Digest, (article_id, article_type)) is not None
+
+
+def save_digest(digest: Digest, db: Session) -> None:
+    db.merge(digest)
+    db.commit()
