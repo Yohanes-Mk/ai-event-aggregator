@@ -347,3 +347,103 @@ ai-event-agreegator/
 3. Wire up APScheduler to run both scrapers on a schedule
 4. Add OpenAI summarisation in `app/services/`
 5. Build agent logic in `agent/`
+
+---
+
+## 2026-03-10 — DB layer + project cleanup
+
+### What was built
+
+**PostgreSQL DB layer (complete)**
+- `app/db/session.py` — SQLAlchemy engine + `SessionLocal`; reads `DATABASE_URL` from env, defaults to `postgresql://postgres:postgres@localhost:5432/aggregator`
+- `app/db/models.py` — `YouTubeVideo` (PK: `video_id`) and `Event` (composite PK: `title` + `start_time`) ORM models; uses `ARRAY(Text)` for `urls` and `sources` columns
+- `app/db/repository.py` — `save_videos`, `save_events` (both use `db.merge()` for upsert safety), `get_videos`, `get_events`
+- `scripts/create_tables.py` — runs `Base.metadata.create_all(engine)` to initialise tables
+
+**`infra/docker-compose.yml`** — Postgres 16 container, credentials `postgres`/`postgres`, DB `aggregator`
+
+**Project structure cleanup**
+- Created `infra/` — moved `docker-compose.yml` and `Dockerfile` here
+- Created `scripts/` — moved `create_tables.py` here
+- Created `docs/` — moved `PROJECT_STATUS.md` and `INTERACTIVE_WINDOW.md` here
+- Added `Makefile` at root with short aliases
+- Added `.env` to `.gitignore`
+
+**`Makefile` targets**
+```
+make up       → docker compose -f infra/docker-compose.yml up -d
+make down     → docker compose -f infra/docker-compose.yml down
+make db-init  → uv run scripts/create_tables.py
+make run      → uv run main.py
+make test     → uv run pytest
+```
+
+### Current folder structure
+```
+ai-event-agreegator/
+├── infra/
+│   ├── docker-compose.yml
+│   └── Dockerfile
+├── scripts/
+│   └── create_tables.py
+├── docs/
+│   ├── PROJECT_STATUS.md
+│   └── INTERACTIVE_WINDOW.md
+├── app/
+│   ├── db/
+│   │   ├── models.py
+│   │   ├── session.py
+│   │   └── repository.py
+│   ├── scrapers/
+│   │   ├── events/
+│   │   └── youtube/
+│   └── services/
+├── tests/
+├── main.py
+├── Makefile
+├── .env.example
+└── pyproject.toml
+```
+
+### What works
+- `make up` starts Postgres
+- `make db-init` creates `youtube_videos` and `events` tables
+- Connection verified in Beekeeper Studio (localhost:5432, postgres/postgres, db: aggregator)
+
+### What works
+- `make up` starts Postgres
+- `make db-init` creates `youtube_videos` and `events` tables
+- Connection verified in Beekeeper Studio (localhost:5432, postgres/postgres, db: aggregator)
+
+### What's next (superseded by next session)
+1. Wire `repository.py` into `main.py` — persist scraped results to Postgres after each run
+2. Wire up APScheduler to run both scrapers on a schedule
+3. Add OpenAI summarisation in `app/services/`
+4. Build agent logic in `agent/`
+
+---
+
+## 2026-03-10 — Transcripts + Webshare proxy + full pipeline wired up
+
+### What was built
+
+**`app/scrapers/youtube/scraper.py`**
+- Fixed syntax bug: `except TranscriptsDisabled, NoTranscriptFound:` → `except (TranscriptsDisabled, NoTranscriptFound):`
+- Added `_build_transcript_api()` — reads `WEBSHARE_PROXY_USERNAME` / `WEBSHARE_PROXY_PASSWORD` from env; if set, uses `WebshareProxyConfig`; otherwise direct requests
+- `fetch_transcript()` now uses `_build_transcript_api()`
+
+**`main.py`**
+- Enabled `with_transcripts=True`
+- Wired up `repository.save_videos()` and `repository.save_events()` — every run persists to Postgres
+
+**`.env.example`** — added `WEBSHARE_PROXY_USERNAME` / `WEBSHARE_PROXY_PASSWORD` (blank by default)
+
+### What works
+- `make run` scrapes videos + events, fetches transcripts via Webshare proxy, saves everything to Postgres
+- `youtube_videos.transcript` column populated in Beekeeper Studio
+- Proxy is optional — leave blank in `.env` for direct requests (fine locally, may be blocked on cloud)
+
+### What's next
+1. Wire up APScheduler to run both scrapers on a schedule
+2. Add OpenAI summarisation in `app/services/`
+3. Build agent logic in `agent/`

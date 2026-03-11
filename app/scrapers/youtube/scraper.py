@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import feedparser
 import httpx
 from datetime import datetime, timezone, timedelta
@@ -9,6 +10,20 @@ from youtube_transcript_api import (
     TranscriptsDisabled,
     NoTranscriptFound,
 )
+from youtube_transcript_api.proxies import WebshareProxyConfig
+
+
+def _build_transcript_api() -> YouTubeTranscriptApi:
+    username = os.getenv("WEBSHARE_PROXY_USERNAME")
+    password = os.getenv("WEBSHARE_PROXY_PASSWORD")
+    if username and password:
+        return YouTubeTranscriptApi(
+            proxy_config=WebshareProxyConfig(
+                proxy_username=username,
+                proxy_password=password,
+            )
+        )
+    return YouTubeTranscriptApi()
 
 
 class Channel(BaseModel):
@@ -93,9 +108,9 @@ class YouTubeScraper:
     def fetch_transcript(self, video: Video) -> Video:
         """Fetch and attach transcript text to a Video. Returns the same object."""
         try:
-            segments = YouTubeTranscriptApi().fetch(video.video_id)
+            segments = _build_transcript_api().fetch(video.video_id)
             transcript = " ".join(s.text for s in segments)
-        except TranscriptsDisabled, NoTranscriptFound:
+        except (TranscriptsDisabled, NoTranscriptFound):
             transcript = None
         return video.model_copy(update={"transcript": transcript})
 

@@ -5,26 +5,34 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from app.scrapers.youtube import YouTubeScraper, CHANNELS
 from app.scrapers.events import EventScraper
+from app.db.session import SessionLocal
+from app.db import repository
 
 
 def main() -> None:
+    db = SessionLocal()
+
     print("=== YouTube Videos (last 14 days) ===")
-    total_videos = 0
+    all_videos = []
     for ch in CHANNELS:
         scraper = YouTubeScraper(ch["channel_id"], ch["name"])
-        videos = scraper.scrape(with_transcripts=False)
+        videos = scraper.scrape(with_transcripts=True)
         for v in videos:
             print(f"  [{v.channel_name}] {v.title} ({v.published_at.date()})")
-        total_videos += len(videos)
+        all_videos.extend(videos)
 
-    print(f"\n  {total_videos} videos found\n")
+    repository.save_videos(all_videos, db)
+    print(f"\n  {len(all_videos)} videos saved\n")
 
     print("=== Upcoming Events (next 14 days) ===")
     events = EventScraper().scrape()
     for e in events:
         print(f"  {e.start_time.strftime('%a %b %d')} - {e.title} ({', '.join(e.sources)})")
 
-    print(f"\n  {len(events)} events found")
+    repository.save_events(events, db)
+    print(f"\n  {len(events)} events saved")
+
+    db.close()
 
 
 if __name__ == "__main__":
