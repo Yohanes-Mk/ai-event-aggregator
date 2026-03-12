@@ -68,6 +68,7 @@ ai-event-agreegator/
 │       ├── process_youtube_email.py
 │       └── retry_utils.py
 ├── docs/
+│   ├── context_snapshots/
 │   ├── DEMO_PHASES.md
 │   ├── FUTURE_FEATURES.md
 │   ├── INTERACTIVE_WINDOW.md
@@ -122,6 +123,7 @@ Major paths only. Use this ledger for creates, removes, moves, and renames that 
 | `app/services/process_dashboard.py` | file | 2026-03-12 |  | Generates the real-data dashboard artifact from DB state after each pipeline run. |
 | `app/services/retry_utils.py` | file | 2026-03-12 |  | Shared retry helper used by API-heavy stages for retry/backoff telemetry. |
 | `docs/` | dir | 2026-03-10 |  | Introduced during project cleanup; houses project docs. |
+| `docs/context_snapshots/` | dir | 2026-03-12 |  | Timestamped markdown archives of `docs/user_context.md`. |
 | `docs/DEMO_PHASES.md` | file | 2026-03-12 |  | Demo roadmap and implementation checklist. |
 | `docs/FUTURE_FEATURES.md` | file | 2026-03-12 |  | Append-only future feature tracker. |
 | `docs/INTERACTIVE_WINDOW.md` | file | 2026-03-10 |  | Created at repo root, moved into `docs/` during cleanup. |
@@ -1318,3 +1320,72 @@ make test     → uv run pytest
 1. Run `make demo` and validate the visual direction in the browser, not just by import/compile checks.
 2. If needed, do one more focused pass on spacing/typography only, without changing the demo flow again.
 3. If the visuals are now stable, move to demo-day operator polish rather than more structural UI changes.
+
+---
+
+## 2026-03-12 — Streamlit context editor + runtime curator context loading
+
+### Structure changes
+- None. This session changed existing curator/demo behavior but did not add new repo paths.
+
+### What was built / changed
+- Updated `agent/curator_agent.py` so curator context is no longer frozen at import time:
+  - added `load_user_context()`
+  - added `save_user_context()`
+  - added `build_system_prompt()`
+  - `run()` now reads `docs/user_context.md` at call time
+- Updated `app/services/process_curator.py` to return the saved `CuratorRun | None`, which makes it usable as a real action inside the demo app.
+- Added a new `Ranking Context Editor` section to `scripts/demo_app.py`:
+  - large text area seeded from `docs/user_context.md`
+  - `Save Context` action
+  - `Save, Re-rank, Refresh Dashboard` action
+- The combined context action now:
+  1. writes the edited text back to `docs/user_context.md`
+  2. runs the curator against recent digests
+  3. refreshes the dashboard artifact so the personalization change is visible immediately
+- Added explicit UI copy clarifying that:
+  - YouTube ranking/dashboard depend on curator context
+  - events email does not
+
+### What works
+- Curator context edits no longer require restarting the Streamlit app to affect future ranking runs.
+- `scripts/demo_app.py` imports successfully with the new context editor.
+- The demo app now supports a coherent personalization flow:
+  - edit context
+  - rerank
+  - refresh dashboard
+  - then send YouTube digest
+- Demo-app email delivery was user-verified as working after the earlier `.env` fix.
+
+### Errors hit
+- A small indentation bug in the events-send branch of `scripts/demo_app.py` surfaced during compile verification and was fixed before shipping.
+
+### What's next
+1. Use the new context editor to test whether curator output quality improves with tighter profile text.
+2. If needed later, add a safer temporary override mode instead of directly editing `docs/user_context.md`.
+3. Keep the demo flow explicit: save context, rerank, then send YouTube digest.
+
+---
+
+## 2026-03-12 — Context snapshot archive added
+
+### Structure changes
+- Added `docs/context_snapshots/`.
+
+### What was built / changed
+- Added `snapshot_user_context()` in `agent/curator_agent.py` so the current curator context can be archived as a timestamped markdown file.
+- Added an `Archive Context Snapshot` action to the Streamlit context editor in `scripts/demo_app.py`.
+- Created the first archived snapshot from the current profile text at:
+  - `docs/context_snapshots/2026-03-12_132257_initial-streamlit-context.md`
+
+### What works
+- The current `docs/user_context.md` can now be preserved before edits without manual file copying.
+- The archive path uses timestamped markdown files, which is simple to inspect and safe to diff.
+- `scripts/demo_app.py` and `agent/curator_agent.py` compile successfully after the snapshot workflow was added.
+
+### Errors hit
+- None this session.
+
+### What's next
+1. Use the archive button before making major demo-profile edits.
+2. If snapshot volume grows, add a small sidebar list of recent snapshots later instead of changing the archive format now.

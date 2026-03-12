@@ -58,12 +58,15 @@ This file tracks the demo-first roadmap so another coding agent can continue fro
 
 ## Phase 4 — Demo-Friendly Personalization
 
-- [ ] Add visible profile context section for demo narration
+- [x] Add visible profile context section for demo narration
 - [ ] Allow temporary profile override for ranking if the underlying agent path supports it cleanly
 - [ ] Avoid fake personalization UI that is not actually wired into ranking logic
 
 ### Notes
 - 2026-03-12: Current curator logic still uses the existing repo user context flow, so profile editing should not be faked in the UI until the underlying path is real.
+- 2026-03-12: Added a text-based context editor in the demo app that writes directly to `docs/user_context.md`, which matches the repo's real source-of-truth model better than a fake structured profile form.
+- 2026-03-12: The curator now reads `docs/user_context.md` at runtime instead of import time, so context edits can affect future ranking runs without restarting the app.
+- 2026-03-12: Added timestamped context snapshot support under `docs/context_snapshots/` plus a demo-app archive button so the current profile can be preserved before edits.
 
 ## Phase 5 — Channel Customization
 
@@ -80,12 +83,13 @@ This file tracks the demo-first roadmap so another coding agent can continue fro
 - [x] Add `make demo`
 - [x] Verify the Streamlit app imports and starts cleanly
 - [ ] Verify the demo app can trigger real dashboard rendering
-- [ ] Verify the demo app can trigger real email delivery
+- [x] Verify the demo app can trigger real email delivery
 - [ ] Add a short demo-day runbook if needed
 
 ### Notes
 - 2026-03-12: `make demo` now launches `streamlit run scripts/demo_app.py`. Import verification passed; dashboard generation was also exercised through the same service path the UI uses.
 - 2026-03-12: Bare import verification still passes after the layout rebuild and `.env` loading change.
+- 2026-03-12: Email delivery from the demo app was user-verified after the `.env` loading fix.
 
 ## Phase 7 — Post-Demo Evolution
 

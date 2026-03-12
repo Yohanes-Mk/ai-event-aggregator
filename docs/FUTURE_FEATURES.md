@@ -31,6 +31,7 @@ This file tracks future features, enhancements, and follow-up ideas that come up
 | YouTube Shorts Classification Cache | 2026-03-12 | Shorts checks now use a persisted classification cache plus scrape telemetry for cache hits, network calls, and filtered Shorts. | Shorts optimization session |
 | Live Dashboard Data Wiring | 2026-03-12 | Dashboard HTML now renders from real DB data and refreshes on each pipeline run via a generated static artifact. | Dashboard data session |
 | Streamlit Demo Console | 2026-03-12 | Local demo shell for DB stats, ranked content, dashboard preview, and on-demand digest actions. | Demo phases session |
+| Demo Context Editor | 2026-03-12 | Streamlit can now edit `docs/user_context.md` directly and trigger a fresh curator run so personalization changes are visible immediately. | Demo context editor session |
 
 ## Current Backlog
 

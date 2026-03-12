@@ -22,9 +22,11 @@ from app.db.models import CuratorRun, Digest, Event, YouTubeVideo
 from app.db.session import SessionLocal
 from app.monitoring import configure_logging
 from app.scrapers.youtube.channels import CHANNELS
+from app.services.process_curator import process_curator
 from app.services.process_dashboard import ARTIFACT_PATH, process_dashboard
 from app.services.process_events_email import process_events_email
 from app.services.process_youtube_email import process_youtube_email
+from agent.curator_agent import load_user_context, save_user_context, snapshot_user_context
 
 configure_logging()
 
@@ -425,6 +427,75 @@ def _render_actions(default_recipient: str | None) -> None:
                     st.error("Events digest failed. Check the terminal logs for the exact exception.")
 
 
+def _render_context_editor() -> None:
+    with st.container(border=True):
+        _section_intro(
+            "Context",
+            "Ranking Context Editor",
+            "Edit the plain-text curator context directly. Save it here, then rerank so the dashboard and future YouTube digest actions use the updated profile.",
+        )
+
+        current_context = load_user_context()
+        context_value = st.text_area(
+            "User context markdown",
+            value=current_context,
+            height=320,
+            key="user_context_editor",
+            help="This is the live contents of `docs/user_context.md`. The curator reads this file at runtime.",
+        )
+
+        btn1, btn2, btn3 = st.columns([1, 1.3, 1], gap="medium")
+        with btn1:
+            save_clicked = st.button(
+                ":material/save: Save Context",
+                key="save_context_btn",
+                use_container_width=True,
+                help="Writes the text area contents back to `docs/user_context.md`.",
+            )
+        with btn2:
+            rerank_clicked = st.button(
+                ":material/refresh: Save, Re-rank, Refresh Dashboard",
+                key="save_rerank_context_btn",
+                use_container_width=True,
+                help="Saves the context, runs the curator against recent digests, and rebuilds the dashboard so the change is visible immediately.",
+            )
+        with btn3:
+            snapshot_clicked = st.button(
+                ":material/archive: Archive Context Snapshot",
+                key="archive_context_btn",
+                use_container_width=True,
+                help="Saves a timestamped markdown snapshot under `docs/context_snapshots/` without changing the active context file.",
+            )
+
+        st.caption(
+            "Events email does not depend on this context. The YouTube digest and dashboard do, but only after a fresh curator run."
+        )
+
+        if save_clicked:
+            save_user_context(context_value)
+            st.success("Context saved to docs/user_context.md.")
+
+        if snapshot_clicked:
+            snapshot_path = snapshot_user_context(context_value, label="streamlit-context")
+            st.success(f"Context snapshot saved: {snapshot_path}")
+
+        if rerank_clicked:
+            save_user_context(context_value)
+            with st.spinner("Saving context, running curator, and refreshing the dashboard..."):
+                with get_db() as db:
+                    curator_run = process_curator(db)
+                    artifact = process_dashboard(db)
+            if curator_run is None:
+                st.error("Context was saved, but no curator run was produced. Check whether recent digests exist and inspect the terminal logs.")
+            elif artifact is None:
+                st.warning(f"Context saved and curator run #{curator_run.id} completed, but dashboard refresh failed. Check the terminal logs.")
+            else:
+                st.success(
+                    f"Context saved, curator run #{curator_run.id} completed, and dashboard refreshed."
+                )
+                st.rerun()
+
+
 def _render_metrics(snapshot: dict) -> None:
     _section_intro(
         "Metrics",
@@ -536,6 +607,8 @@ def main() -> None:
     _preview_dashboard()
     st.divider()
     _render_actions(default_recipient=os.getenv("GMAIL_RECIPIENT"))
+    st.divider()
+    _render_context_editor()
     st.divider()
     _render_metrics(snapshot)
     st.divider()
