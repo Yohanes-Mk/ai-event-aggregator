@@ -7,10 +7,15 @@ from sqlalchemy.orm import Session
 
 from app.monitoring.queries import (
     compare_stage_efficiency_periods,
+    get_digest_freshness,
+    get_focus_signal_snapshot,
     get_incomplete_runs,
     get_recent_errors,
+    get_recent_runs,
+    get_ranking_drift,
     get_stage_efficiency,
     get_stage_failure_rates,
+    get_stale_top_rank_dominance,
     get_stage_variance,
     utc_now,
 )
@@ -36,6 +41,7 @@ class MonitoringSummary:
 def build_monitoring_summary(db: Session, days: int = 7) -> MonitoringSummary:
     generated_at = utc_now()
     focus_areas: list[MonitoringFocus] = []
+    focus_signals = get_focus_signal_snapshot(db, days=days)
 
     efficiency = get_stage_efficiency(db, days=days)
     variance = get_stage_variance(db, days=days)
@@ -54,6 +60,8 @@ def build_monitoring_summary(db: Session, days: int = 7) -> MonitoringSummary:
         after_start=current_start,
         after_end=current_end,
     )
+    stale_top_rank = get_stale_top_rank_dominance(db, days=max(days, 30), stale_after_days=7, top_n=10)
+    latest_run = next(iter(get_recent_runs(db, limit=1)), None)
 
     if efficiency:
         bottleneck = efficiency[0]
@@ -77,10 +85,11 @@ def build_monitoring_summary(db: Session, days: int = 7) -> MonitoringSummary:
 
     regression = next((row for row in regressions if row.change_percent is not None and row.change_percent >= 20.0), None)
     if regression is not None:
+        severity = _regression_severity(regression.change_percent, regression.before_seconds_per_item, regression.after_seconds_per_item)
         focus_areas.append(
             MonitoringFocus(
                 category="regression",
-                severity="high",
+                severity=severity,
                 stage=regression.stage,
                 stage_group=regression.stage_group,
                 message=(
@@ -150,6 +159,102 @@ def build_monitoring_summary(db: Session, days: int = 7) -> MonitoringSummary:
             )
         )
 
+    ranking_drift = get_ranking_drift(db, days=max(days, 30), min_score_delta=10, limit=5)
+    if ranking_drift:
+        item = ranking_drift[0]
+        focus_areas.append(
+            MonitoringFocus(
+                category="ranking_drift",
+                severity="medium",
+                stage="curator",
+                stage_group="ranking",
+                message=(
+                    f"{item.title} moved by {item.score_delta} points across {item.run_count} ranking runs."
+                ),
+                recommendation="Inspect whether ranking changes came from digest freshness, prompt changes, or a ranking-window change.",
+            )
+        )
+
+    stale_ranked_digests = [
+        row for row in get_digest_freshness(db, days=max(days, 30), stale_after_days=7, limit=20)
+        if row.is_stale and row.ranking_count_recent > 0
+    ]
+    if stale_ranked_digests:
+        item = stale_ranked_digests[0]
+        focus_areas.append(
+            MonitoringFocus(
+                category="freshness",
+                severity="medium",
+                stage="digest_videos",
+                stage_group="enrichment",
+                message=(
+                    f"{item.title} is being ranked with a stale digest (age {item.digest_age_days:.1f} days, "
+                    f"{item.ranking_count_recent} recent ranking hits)."
+                ),
+                recommendation="Refresh digest versions when source content changes and audit how long ranked content should stay eligible.",
+            )
+        )
+
+    if stale_top_rank.stale_share_percent >= 30.0 and stale_top_rank.ranked_items > 0:
+        focus_areas.append(
+            MonitoringFocus(
+                category="stale_top_rank_dominance",
+                severity="high" if stale_top_rank.stale_share_percent >= 50.0 else "medium",
+                stage="curator",
+                stage_group="ranking",
+                message=(
+                    f"{stale_top_rank.stale_share_percent:.1f}% of the latest top-ranked items are backed by stale digests "
+                    f"({stale_top_rank.stale_ranked_items}/{stale_top_rank.ranked_items})."
+                ),
+                recommendation="Refresh digests before ranking or tighten the eligible ranking window so stale items do not dominate the top results.",
+            )
+        )
+
+    if latest_run is not None:
+        shorts_stage = next(
+            (stage for stage in latest_run.stages if stage.stage == "youtube_short_checks"),
+            None,
+        )
+        if (
+            shorts_stage is not None
+            and shorts_stage.duration_seconds >= 15.0
+            and shorts_stage.network_call_count >= 10
+            and shorts_stage.items_attempted > 0
+        ):
+            keep_rate = shorts_stage.items_succeeded / shorts_stage.items_attempted
+            if keep_rate <= 0.15:
+                focus_areas.append(
+                    MonitoringFocus(
+                        category="scrape_efficiency",
+                        severity="high",
+                        stage="youtube_short_checks",
+                        stage_group="scrape",
+                        message=(
+                            f"youtube_short_checks spent {shorts_stage.duration_seconds:.1f}s on "
+                            f"{shorts_stage.network_call_count} network calls, kept "
+                            f"{shorts_stage.items_succeeded}/{shorts_stage.items_attempted} videos, "
+                            f"and filtered {shorts_stage.items_skipped} shorts "
+                            f"(cache_hits={shorts_stage.cache_hit_count})."
+                        ),
+                        recommendation=(
+                            "Persist Shorts classifications, skip known IDs before network checks, "
+                            "and verify cache hits climb on the next runs."
+                        ),
+                    )
+                )
+
+    if focus_signals.stale_top_rank_share_percent >= 30.0 and stale_top_rank.ranked_items == 0:
+        focus_areas.append(
+            MonitoringFocus(
+                category="stale_top_rank_dominance",
+                severity="medium",
+                stage="curator",
+                stage_group="ranking",
+                message=f"Stale digests account for {focus_signals.stale_top_rank_share_percent:.1f}% of the latest ranked items.",
+                recommendation="Refresh stale digests or reduce how long ranked content stays eligible.",
+            )
+        )
+
     if not focus_areas:
         focus_areas.append(
             MonitoringFocus(
@@ -161,6 +266,12 @@ def build_monitoring_summary(db: Session, days: int = 7) -> MonitoringSummary:
                 recommendation="Keep collecting run history so the summary layer has enough baseline for stronger comparisons.",
             )
         )
+
+    focus_areas = sorted(
+        focus_areas,
+        key=lambda focus: (_severity_rank(focus.severity), focus.category),
+        reverse=True,
+    )
 
     return MonitoringSummary(
         generated_at=generated_at,
@@ -195,3 +306,24 @@ def _recommendation_for_stage(stage_group: str | None, symptom: str) -> str:
     if stage_group == "scrape":
         return "Reduce redundant network calls, cache stable lookups, and confirm skips happen before expensive fetches."
     return "Investigate the stage with normalized metrics first, then compare the next window against the previous one."
+
+
+def _severity_rank(severity: str) -> int:
+    return {"high": 3, "medium": 2, "low": 1}.get(severity, 0)
+
+
+def _regression_severity(
+    change_percent: float | None,
+    before_seconds_per_item: float | None,
+    after_seconds_per_item: float | None,
+) -> str:
+    if change_percent is None:
+        return "medium"
+    absolute_increase = 0.0
+    if before_seconds_per_item is not None and after_seconds_per_item is not None:
+        absolute_increase = after_seconds_per_item - before_seconds_per_item
+    if change_percent >= 50.0 or absolute_increase >= 5.0:
+        return "high"
+    if change_percent >= 25.0 or absolute_increase >= 2.0:
+        return "medium"
+    return "low"

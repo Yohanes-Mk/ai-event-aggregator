@@ -31,13 +31,23 @@ def main() -> None:
         logger.info("=== YouTube Videos (last 5 days) ===")
         existing_ids = repository.get_existing_video_ids(db)
         all_videos = []
-        with StageMonitor(tracker, "youtube_scrape") as stage:
+        with StageMonitor(tracker, "youtube_scrape") as stage, StageMonitor(
+            tracker, "youtube_short_checks"
+        ) as shorts_stage:
+            shorts_stage.set_concurrency(1)
+            shorts_stage.set_batch_info(total_batches=len(CHANNELS))
             for ch in CHANNELS:
-                scraper = YouTubeScraper(ch["channel_id"], ch["name"])
+                scraper = YouTubeScraper(
+                    ch["channel_id"],
+                    ch["name"],
+                    load_classifications=lambda video_ids: repository.get_video_classifications(db, video_ids),
+                    save_classifications=lambda classifications: repository.save_video_classifications(classifications, db),
+                )
                 videos = scraper.scrape(
                     within_days=5,
                     with_transcripts=True,
                     skip_ids=existing_ids,
+                    shorts_stage=shorts_stage,
                 )
                 for video in videos:
                     stage.attempt()

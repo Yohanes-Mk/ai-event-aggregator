@@ -48,6 +48,16 @@ class PipelineStageMetric(Base):
     items_attempted = Column(Integer, nullable=False, default=0)
     items_succeeded = Column(Integer, nullable=False, default=0)
     items_failed = Column(Integer, nullable=False, default=0)
+    items_skipped = Column(Integer, nullable=False, default=0)
+    cache_hit_count = Column(Integer, nullable=False, default=0)
+    network_call_count = Column(Integer, nullable=False, default=0)
+    batch_size = Column(Integer, nullable=True)
+    total_batches = Column(Integer, nullable=True)
+    retry_count = Column(Integer, nullable=False, default=0)
+    backoff_count = Column(Integer, nullable=False, default=0)
+    concurrency_level = Column(Integer, nullable=True)
+    model_name = Column(String, nullable=True)
+    prompt_version = Column(String, nullable=True)
     status = Column(
         SAEnum(RunStatus, name="pipeline_status", native_enum=True),
         nullable=False,

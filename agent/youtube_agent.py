@@ -6,6 +6,9 @@ from pydantic import BaseModel
 
 from app.db.models import YouTubeVideo
 
+MODEL_NAME = "gpt-4o-mini"
+PROMPT_VERSION = "youtube-digest-v1"
+
 
 class YouTubeDigestResult(BaseModel):
     title: str
@@ -29,7 +32,7 @@ def run(video: YouTubeVideo) -> YouTubeDigestResult:
     )
 
     response = client.beta.chat.completions.parse(
-        model="gpt-4o-mini",
+        model=MODEL_NAME,
         messages=[
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user", "content": prompt},

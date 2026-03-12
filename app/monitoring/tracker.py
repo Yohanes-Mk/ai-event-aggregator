@@ -83,6 +83,16 @@ class PipelineTracker:
         items_attempted: int,
         items_succeeded: int,
         items_failed: int,
+        items_skipped: int,
+        cache_hit_count: int,
+        network_call_count: int,
+        batch_size: int | None,
+        total_batches: int | None,
+        retry_count: int,
+        backoff_count: int,
+        concurrency_level: int | None,
+        model_name: str | None,
+        prompt_version: str | None,
         status: RunStatus,
     ) -> PipelineStageMetric:
         run = self._require_run()
@@ -95,6 +105,16 @@ class PipelineTracker:
             items_attempted=items_attempted,
             items_succeeded=items_succeeded,
             items_failed=items_failed,
+            items_skipped=items_skipped,
+            cache_hit_count=cache_hit_count,
+            network_call_count=network_call_count,
+            batch_size=batch_size,
+            total_batches=total_batches,
+            retry_count=retry_count,
+            backoff_count=backoff_count,
+            concurrency_level=concurrency_level,
+            model_name=model_name,
+            prompt_version=prompt_version,
             status=status,
         )
         self.db.add(metric)
@@ -121,6 +141,12 @@ class PipelineTracker:
 
     def abort(self, exc: Exception) -> None:
         run = self._require_run()
+
+        try:
+            self.db.rollback()
+        except Exception:
+            logger.exception("Failed to roll back session before abort handling")
+
         if run.ended_at is not None:
             return
 
@@ -132,7 +158,11 @@ class PipelineTracker:
         run.status = RunStatus.failed
         run.ended_at = utc_now()
         run.notes = str(exc)
-        self.db.commit()
+        try:
+            self.db.commit()
+        except Exception:
+            logger.exception("Failed to persist aborted pipeline run state run_id=%s", run.id)
+            self.db.rollback()
 
         self._safe_alert_complete(run)
 

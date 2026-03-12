@@ -3,16 +3,19 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
+from math import floor, ceil
 
 from sqlalchemy import Date, case, cast, func
 from sqlalchemy.orm import Session
 
+from app.db.models import CuratorRanking, CuratorRun, Digest
 from app.monitoring.models import PipelineError, PipelineRun, PipelineStageMetric, RunStatus
 
 RUNNING_AI_STAGE_GROUPS = {"enrichment", "ranking"}
 
 STAGE_GROUPS = {
     "youtube_scrape": "scrape",
+    "youtube_short_checks": "scrape",
     "events_scrape": "scrape",
     "digest_videos": "enrichment",
     "events_enrichment": "enrichment",
@@ -36,6 +39,21 @@ def _coalesce_int(value: int | None) -> int:
 
 def _coalesce_float(value: float | None) -> float:
     return float(value or 0.0)
+
+
+def _compute_percentile(values: list[float], percentile: float) -> float:
+    if not values:
+        return 0.0
+    if len(values) == 1:
+        return values[0]
+    sorted_values = sorted(values)
+    position = (len(sorted_values) - 1) * percentile
+    lower = floor(position)
+    upper = ceil(position)
+    if lower == upper:
+        return sorted_values[lower]
+    weight = position - lower
+    return sorted_values[lower] * (1 - weight) + sorted_values[upper] * weight
 
 
 def _window_bounds(
@@ -79,6 +97,16 @@ class RunStageSummary:
     items_attempted: int
     items_succeeded: int
     items_failed: int
+    items_skipped: int
+    cache_hit_count: int
+    network_call_count: int
+    batch_size: int | None
+    total_batches: int | None
+    retry_count: int
+    backoff_count: int
+    concurrency_level: int | None
+    model_name: str | None
+    prompt_version: str | None
     started_at: datetime
 
 
@@ -178,6 +206,15 @@ class StageVariance:
     avg_seconds: float
     stddev_seconds: float
     variance_percent: float
+
+
+@dataclass(slots=True)
+class StageLatencyPercentiles:
+    stage: str
+    stage_group: str
+    p95_seconds: float
+    p99_seconds: float
+    sample_count: int
 
 
 @dataclass(slots=True)
@@ -282,6 +319,82 @@ class AIWorkload:
 
 
 @dataclass(slots=True)
+class BatchTelemetry:
+    stage: str
+    stage_group: str
+    stage_run_count: int
+    avg_batch_size: float
+    avg_total_batches: float
+    avg_seconds_per_batch: float
+    avg_retry_count: float
+    avg_backoff_count: float
+    avg_concurrency_level: float
+    avg_items_skipped: float
+    avg_cache_hits: float
+    avg_network_calls: float
+    model_names: list[str]
+    prompt_versions: list[str]
+
+
+@dataclass(slots=True)
+class RetrySummary:
+    stage: str
+    stage_group: str
+    total_retries: int
+    total_backoffs: int
+    affected_runs: int
+    retry_rate_percent: float
+
+
+@dataclass(slots=True)
+class RankingDrift:
+    article_id: str
+    article_type: str
+    title: str
+    run_count: int
+    min_score: int
+    max_score: int
+    score_delta: int
+    latest_ranked_at: datetime
+
+
+@dataclass(slots=True)
+class DigestFreshness:
+    article_id: str
+    article_type: str
+    title: str
+    digest_version: int
+    digest_generated_at: datetime
+    source_updated_at: datetime | None
+    content_last_seen_at: datetime | None
+    digest_age_days: float
+    ranking_count_recent: int
+    latest_ranked_at: datetime | None
+    is_stale: bool
+
+
+@dataclass(slots=True)
+class StaleTopRankDominance:
+    curator_run_id: int | None
+    ranked_items: int
+    stale_ranked_items: int
+    stale_share_percent: float
+
+
+@dataclass(slots=True)
+class FocusSignalSnapshot:
+    bottleneck_stage: str | None
+    bottleneck_seconds_per_item: float
+    regression_stage: str | None
+    regression_change_percent: float | None
+    unstable_stage: str | None
+    unstable_variance_percent: float
+    failure_stage: str | None
+    failure_rate_percent: float
+    stale_top_rank_share_percent: float
+
+
+@dataclass(slots=True)
 class StagePeriodComparison:
     stage: str
     stage_group: str
@@ -307,6 +420,16 @@ def get_run_stage_metrics(db: Session, run_id: int) -> list[RunStageSummary]:
             items_attempted=_coalesce_int(row.items_attempted),
             items_succeeded=_coalesce_int(row.items_succeeded),
             items_failed=_coalesce_int(row.items_failed),
+            items_skipped=_coalesce_int(row.items_skipped),
+            cache_hit_count=_coalesce_int(row.cache_hit_count),
+            network_call_count=_coalesce_int(row.network_call_count),
+            batch_size=row.batch_size,
+            total_batches=row.total_batches,
+            retry_count=_coalesce_int(row.retry_count),
+            backoff_count=_coalesce_int(row.backoff_count),
+            concurrency_level=row.concurrency_level,
+            model_name=row.model_name,
+            prompt_version=row.prompt_version,
             started_at=row.started_at,
         )
         for row in rows
@@ -360,6 +483,16 @@ def get_recent_runs(db: Session, limit: int = 10) -> list[RecentRun]:
                     items_attempted=_coalesce_int(row.items_attempted),
                     items_succeeded=_coalesce_int(row.items_succeeded),
                     items_failed=_coalesce_int(row.items_failed),
+                    items_skipped=_coalesce_int(row.items_skipped),
+                    cache_hit_count=_coalesce_int(row.cache_hit_count),
+                    network_call_count=_coalesce_int(row.network_call_count),
+                    batch_size=row.batch_size,
+                    total_batches=row.total_batches,
+                    retry_count=_coalesce_int(row.retry_count),
+                    backoff_count=_coalesce_int(row.backoff_count),
+                    concurrency_level=row.concurrency_level,
+                    model_name=row.model_name,
+                    prompt_version=row.prompt_version,
                     started_at=row.started_at,
                 )
             )
@@ -649,6 +782,40 @@ def get_stage_variance(db: Session, days: int = 30) -> list[StageVariance]:
             )
         )
     return sorted(results, key=lambda row: row.variance_percent, reverse=True)
+
+
+def get_stage_latency_percentiles(db: Session, days: int = 30) -> list[StageLatencyPercentiles]:
+    start, end = _window_bounds(days=days)
+    rows = (
+        _apply_started_window(
+            db.query(
+                PipelineStageMetric.stage,
+                PipelineStageMetric.duration_seconds,
+            ),
+            PipelineStageMetric.started_at,
+            start,
+            end,
+        )
+        .order_by(PipelineStageMetric.stage.asc(), PipelineStageMetric.duration_seconds.asc())
+        .all()
+    )
+
+    durations_by_stage: dict[str, list[float]] = defaultdict(list)
+    for row in rows:
+        durations_by_stage[row.stage].append(_coalesce_float(row.duration_seconds))
+
+    results: list[StageLatencyPercentiles] = []
+    for stage, values in durations_by_stage.items():
+        results.append(
+            StageLatencyPercentiles(
+                stage=stage,
+                stage_group=get_stage_group(stage),
+                p95_seconds=round(_compute_percentile(values, 0.95), 1),
+                p99_seconds=round(_compute_percentile(values, 0.99), 1),
+                sample_count=len(values),
+            )
+        )
+    return sorted(results, key=lambda row: row.p95_seconds, reverse=True)
 
 
 def get_stage_failure_rates(db: Session, days: int = 30) -> list[StageFailureRate]:
@@ -1052,6 +1219,311 @@ def get_ai_workload(db: Session, days: int = 30) -> list[AIWorkload]:
             )
         )
     return sorted(workload, key=lambda item: (item.stage_group, item.stage))
+
+
+def get_batch_telemetry(db: Session, days: int = 30) -> list[BatchTelemetry]:
+    start, end = _window_bounds(days=days)
+    rows = (
+        _apply_started_window(
+            db.query(
+                PipelineStageMetric.stage,
+                func.count(PipelineStageMetric.id).label("stage_run_count"),
+                func.avg(PipelineStageMetric.batch_size).label("avg_batch_size"),
+                func.avg(PipelineStageMetric.total_batches).label("avg_total_batches"),
+                func.avg(PipelineStageMetric.retry_count).label("avg_retry_count"),
+                func.avg(PipelineStageMetric.backoff_count).label("avg_backoff_count"),
+                func.avg(PipelineStageMetric.concurrency_level).label("avg_concurrency_level"),
+                func.avg(PipelineStageMetric.items_skipped).label("avg_items_skipped"),
+                func.avg(PipelineStageMetric.cache_hit_count).label("avg_cache_hits"),
+                func.avg(PipelineStageMetric.network_call_count).label("avg_network_calls"),
+                func.avg(
+                    case(
+                        (
+                            PipelineStageMetric.total_batches.is_not(None),
+                            PipelineStageMetric.duration_seconds / func.nullif(PipelineStageMetric.total_batches, 0),
+                        ),
+                        else_=None,
+                    )
+                ).label("avg_seconds_per_batch"),
+                func.array_agg(func.distinct(PipelineStageMetric.model_name)).label("model_names"),
+                func.array_agg(func.distinct(PipelineStageMetric.prompt_version)).label("prompt_versions"),
+            ),
+            PipelineStageMetric.started_at,
+            start,
+            end,
+        )
+        .group_by(PipelineStageMetric.stage)
+        .order_by(func.avg(PipelineStageMetric.retry_count).desc(), func.avg(PipelineStageMetric.batch_size).desc())
+        .all()
+    )
+
+    return [
+        BatchTelemetry(
+            stage=row.stage,
+            stage_group=get_stage_group(row.stage),
+            stage_run_count=_coalesce_int(row.stage_run_count),
+            avg_batch_size=round(_coalesce_float(row.avg_batch_size), 2),
+            avg_total_batches=round(_coalesce_float(row.avg_total_batches), 2),
+            avg_seconds_per_batch=round(_coalesce_float(row.avg_seconds_per_batch), 2),
+            avg_retry_count=round(_coalesce_float(row.avg_retry_count), 2),
+            avg_backoff_count=round(_coalesce_float(row.avg_backoff_count), 2),
+            avg_concurrency_level=round(_coalesce_float(row.avg_concurrency_level), 2),
+            avg_items_skipped=round(_coalesce_float(row.avg_items_skipped), 2),
+            avg_cache_hits=round(_coalesce_float(row.avg_cache_hits), 2),
+            avg_network_calls=round(_coalesce_float(row.avg_network_calls), 2),
+            model_names=sorted(name for name in (row.model_names or []) if name),
+            prompt_versions=sorted(version for version in (row.prompt_versions or []) if version),
+        )
+        for row in rows
+    ]
+
+
+def get_retry_summary(db: Session, days: int = 30) -> list[RetrySummary]:
+    start, end = _window_bounds(days=days)
+    rows = (
+        _apply_started_window(
+            db.query(
+                PipelineStageMetric.stage,
+                func.sum(PipelineStageMetric.retry_count).label("total_retries"),
+                func.sum(PipelineStageMetric.backoff_count).label("total_backoffs"),
+                func.sum(case((PipelineStageMetric.retry_count > 0, 1), else_=0)).label("affected_runs"),
+                func.count(PipelineStageMetric.id).label("stage_run_count"),
+            ),
+            PipelineStageMetric.started_at,
+            start,
+            end,
+        )
+        .group_by(PipelineStageMetric.stage)
+        .order_by(func.sum(PipelineStageMetric.retry_count).desc(), PipelineStageMetric.stage.asc())
+        .all()
+    )
+
+    results: list[RetrySummary] = []
+    for row in rows:
+        stage_run_count = _coalesce_int(row.stage_run_count)
+        affected_runs = _coalesce_int(row.affected_runs)
+        results.append(
+            RetrySummary(
+                stage=row.stage,
+                stage_group=get_stage_group(row.stage),
+                total_retries=_coalesce_int(row.total_retries),
+                total_backoffs=_coalesce_int(row.total_backoffs),
+                affected_runs=affected_runs,
+                retry_rate_percent=round((100.0 * affected_runs / stage_run_count), 1) if stage_run_count else 0.0,
+            )
+        )
+    return results
+
+
+def get_ranking_drift(
+    db: Session,
+    days: int = 30,
+    min_score_delta: int = 10,
+    limit: int = 20,
+) -> list[RankingDrift]:
+    start, end = _window_bounds(days=days)
+    rows = (
+        _apply_started_window(
+            db.query(
+                CuratorRanking.article_id,
+                CuratorRanking.article_type,
+                CuratorRanking.title,
+                func.count(func.distinct(CuratorRanking.curator_run_id)).label("run_count"),
+                func.min(CuratorRanking.score).label("min_score"),
+                func.max(CuratorRanking.score).label("max_score"),
+                func.max(CuratorRun.started_at).label("latest_ranked_at"),
+            ).join(CuratorRun, CuratorRanking.curator_run_id == CuratorRun.id),
+            CuratorRun.started_at,
+            start,
+            end,
+        )
+        .group_by(CuratorRanking.article_id, CuratorRanking.article_type, CuratorRanking.title)
+        .having((func.max(CuratorRanking.score) - func.min(CuratorRanking.score)) >= min_score_delta)
+        .order_by((func.max(CuratorRanking.score) - func.min(CuratorRanking.score)).desc(), func.max(CuratorRun.started_at).desc())
+        .limit(limit)
+        .all()
+    )
+
+    return [
+        RankingDrift(
+            article_id=row.article_id,
+            article_type=row.article_type,
+            title=row.title,
+            run_count=_coalesce_int(row.run_count),
+            min_score=_coalesce_int(row.min_score),
+            max_score=_coalesce_int(row.max_score),
+            score_delta=_coalesce_int(row.max_score) - _coalesce_int(row.min_score),
+            latest_ranked_at=row.latest_ranked_at,
+        )
+        for row in rows
+    ]
+
+
+def get_digest_freshness(
+    db: Session,
+    days: int = 30,
+    stale_after_days: int = 7,
+    limit: int = 20,
+) -> list[DigestFreshness]:
+    start, end = _window_bounds(days=days)
+    ranking_stats_sq = (
+        _apply_started_window(
+            db.query(
+                CuratorRanking.article_id.label("article_id"),
+                CuratorRanking.article_type.label("article_type"),
+                func.count(CuratorRanking.id).label("ranking_count_recent"),
+                func.max(CuratorRun.started_at).label("latest_ranked_at"),
+            ).join(CuratorRun, CuratorRanking.curator_run_id == CuratorRun.id),
+            CuratorRun.started_at,
+            start,
+            end,
+        )
+        .group_by(CuratorRanking.article_id, CuratorRanking.article_type)
+        .subquery()
+    )
+
+    rows = (
+        db.query(
+            Digest.article_id,
+            Digest.article_type,
+            Digest.title,
+            Digest.digest_version,
+            Digest.digest_generated_at,
+            Digest.source_updated_at,
+            Digest.content_last_seen_at,
+            ranking_stats_sq.c.ranking_count_recent,
+            ranking_stats_sq.c.latest_ranked_at,
+        )
+        .outerjoin(
+            ranking_stats_sq,
+            (Digest.article_id == ranking_stats_sq.c.article_id)
+            & (Digest.article_type == ranking_stats_sq.c.article_type),
+        )
+        .order_by(Digest.digest_generated_at.asc())
+        .limit(limit)
+        .all()
+    )
+
+    now = utc_now()
+    results: list[DigestFreshness] = []
+    for row in rows:
+        digest_age_days = round(max((now - row.digest_generated_at).total_seconds(), 0.0) / 86400.0, 1)
+        ranking_count_recent = _coalesce_int(row.ranking_count_recent)
+        results.append(
+            DigestFreshness(
+                article_id=row.article_id,
+                article_type=row.article_type,
+                title=row.title,
+                digest_version=_coalesce_int(row.digest_version),
+                digest_generated_at=row.digest_generated_at,
+                source_updated_at=row.source_updated_at,
+                content_last_seen_at=row.content_last_seen_at,
+                digest_age_days=digest_age_days,
+                ranking_count_recent=ranking_count_recent,
+                latest_ranked_at=row.latest_ranked_at,
+                is_stale=digest_age_days >= stale_after_days,
+            )
+        )
+    return sorted(
+        results,
+        key=lambda row: (row.is_stale, row.ranking_count_recent, row.digest_age_days),
+        reverse=True,
+    )
+
+
+def get_stale_top_rank_dominance(
+    db: Session,
+    days: int = 30,
+    stale_after_days: int = 7,
+    top_n: int = 10,
+) -> StaleTopRankDominance:
+    start, end = _window_bounds(days=days)
+    latest_run = (
+        _apply_started_window(
+            db.query(CuratorRun),
+            CuratorRun.started_at,
+            start,
+            end,
+        )
+        .order_by(CuratorRun.started_at.desc())
+        .first()
+    )
+    if latest_run is None:
+        return StaleTopRankDominance(
+            curator_run_id=None,
+            ranked_items=0,
+            stale_ranked_items=0,
+            stale_share_percent=0.0,
+        )
+
+    ranking_rows = (
+        db.query(CuratorRanking, Digest)
+        .join(
+            Digest,
+            (CuratorRanking.article_id == Digest.article_id)
+            & (CuratorRanking.article_type == Digest.article_type),
+        )
+        .filter(CuratorRanking.curator_run_id == latest_run.id)
+        .order_by(CuratorRanking.rank_position.asc())
+        .limit(top_n)
+        .all()
+    )
+    if not ranking_rows:
+        return StaleTopRankDominance(
+            curator_run_id=latest_run.id,
+            ranked_items=0,
+            stale_ranked_items=0,
+            stale_share_percent=0.0,
+        )
+
+    now = utc_now()
+    stale_ranked_items = 0
+    for _ranking, digest in ranking_rows:
+        digest_age_days = max((now - digest.digest_generated_at).total_seconds(), 0.0) / 86400.0
+        if digest_age_days >= stale_after_days:
+            stale_ranked_items += 1
+
+    ranked_items = len(ranking_rows)
+    return StaleTopRankDominance(
+        curator_run_id=latest_run.id,
+        ranked_items=ranked_items,
+        stale_ranked_items=stale_ranked_items,
+        stale_share_percent=round((100.0 * stale_ranked_items / ranked_items), 1) if ranked_items else 0.0,
+    )
+
+
+def get_focus_signal_snapshot(db: Session, days: int = 7) -> FocusSignalSnapshot:
+    efficiency = get_stage_efficiency(db, days=days)
+    variance = get_stage_variance(db, days=days)
+    failure_rates = get_stage_failure_rates(db, days=days)
+    current_end = utc_now()
+    current_start = current_end - timedelta(days=days)
+    previous_end = current_start
+    previous_start = previous_end - timedelta(days=days)
+    regressions = compare_stage_efficiency_periods(
+        db,
+        before_start=previous_start,
+        before_end=previous_end,
+        after_start=current_start,
+        after_end=current_end,
+    )
+    stale_top_rank = get_stale_top_rank_dominance(db, days=max(days, 30), stale_after_days=7, top_n=10)
+
+    bottleneck = efficiency[0] if efficiency else None
+    regression = next((row for row in regressions if row.change_percent is not None), None)
+    unstable = variance[0] if variance else None
+    failure = failure_rates[0] if failure_rates else None
+    return FocusSignalSnapshot(
+        bottleneck_stage=bottleneck.stage if bottleneck else None,
+        bottleneck_seconds_per_item=bottleneck.seconds_per_item if bottleneck else 0.0,
+        regression_stage=regression.stage if regression else None,
+        regression_change_percent=regression.change_percent if regression else None,
+        unstable_stage=unstable.stage if unstable else None,
+        unstable_variance_percent=unstable.variance_percent if unstable else 0.0,
+        failure_stage=failure.stage if failure else None,
+        failure_rate_percent=failure.failure_rate_percent if failure else 0.0,
+        stale_top_rank_share_percent=stale_top_rank.stale_share_percent,
+    )
 
 
 def compare_periods(

@@ -7,6 +7,9 @@ from pydantic import BaseModel
 
 from app.db.models import Digest
 
+MODEL_NAME = "gpt-4o-mini"
+PROMPT_VERSION = "curator-v1"
+
 
 _USER_CONTEXT = (Path(__file__).parent.parent / "docs" / "user_context.md").read_text()
 
@@ -51,7 +54,7 @@ def run(digests: list[Digest]) -> CuratorResult:
     prompt = "Here are today's content items to rank:\n\n" + "\n---\n".join(items)
 
     response = client.beta.chat.completions.parse(
-        model="gpt-4o-mini",
+        model=MODEL_NAME,
         messages=[
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user", "content": prompt},

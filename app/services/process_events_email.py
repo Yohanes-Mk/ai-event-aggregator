@@ -14,7 +14,9 @@ from app.db.models import Event
 from app.email.render import render_events_email
 from app.monitoring import StageMonitor
 from app.monitoring.tracker import PipelineTracker
+from app.services.retry_utils import run_with_retries
 from agent.events_email_agent import run as generate_email
+from agent import events_email_agent
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +61,20 @@ def process_events_email(db: Session, tracker: PipelineTracker | None = None) ->
 
         logger.info("  Found %s event(s) for the next 14 days...", len(events))
         stage.attempt()
+        stage.set_model_info(
+            model_name=events_email_agent.MODEL_NAME,
+            prompt_version=events_email_agent.PROMPT_VERSION,
+        )
+        stage.set_batch_info(batch_size=len(events), total_batches=1)
+        stage.set_concurrency(1)
 
         try:
-            email_result = generate_email(events)
+            email_result = run_with_retries(
+                lambda: generate_email(events),
+                max_attempts=3,
+                backoff_seconds=1.0,
+                on_retry=lambda _attempt, _backoff: _record_retry(stage),
+            )
         except Exception as exc:
             stage.fail(exc)
             logger.exception("Events email generation failed")
@@ -91,3 +104,8 @@ def process_events_email(db: Session, tracker: PipelineTracker | None = None) ->
 
         stage.succeed()
         logger.info("  Email sent.")
+
+
+def _record_retry(stage: StageMonitor) -> None:
+    stage.add_retry()
+    stage.add_backoff()

@@ -61,7 +61,8 @@ ai-event-agreegator/
 │       ├── process_curator.py
 │       ├── process_digest.py
 │       ├── process_events_email.py
-│       └── process_youtube_email.py
+│       ├── process_youtube_email.py
+│       └── retry_utils.py
 ├── docs/
 │   ├── FUTURE_FEATURES.md
 │   ├── INTERACTIVE_WINDOW.md
@@ -109,6 +110,7 @@ Major paths only. Use this ledger for creates, removes, moves, and renames that 
 | `app/monitoring/` | dir | 2026-03-12 |  | Pipeline monitoring foundation v1. |
 | `app/monitoring/queries.py` | file | 2026-03-12 |  | Reusable monitoring analytics layer. |
 | `app/monitoring/summary.py` | file | 2026-03-12 |  | Rule-based monitoring focus-area summary layer. |
+| `app/services/retry_utils.py` | file | 2026-03-12 |  | Shared retry helper used by API-heavy stages for retry/backoff telemetry. |
 | `docs/` | dir | 2026-03-10 |  | Introduced during project cleanup; houses project docs. |
 | `docs/FUTURE_FEATURES.md` | file | 2026-03-12 |  | Append-only future feature tracker. |
 | `docs/INTERACTIVE_WINDOW.md` | file | 2026-03-10 |  | Created at repo root, moved into `docs/` during cleanup. |
@@ -966,3 +968,171 @@ make test     → uv run pytest
 1. Implement ranking history persistence so score drift and ranking volatility become measurable.
 2. Add digest freshness/version tracking so stale summaries are visible in ranking analysis.
 3. Add batch/retry telemetry so batching and API optimizations can be measured honestly.
+
+---
+
+## 2026-03-12 — Ranking history persistence + digest freshness
+
+### Structure changes
+- None. This session changed schema, persistence, analytics, and docs, but did not add new major paths.
+
+### What was built / changed
+- Added `CuratorRun` and `CuratorRanking` ORM models so curator scoring history persists across runs.
+- Added digest metadata fields on `Digest`:
+  - `digest_version`
+  - `digest_generated_at`
+  - `source_updated_at`
+  - `content_last_seen_at`
+  - `model_name`
+  - `prompt_version`
+- Updated `scripts/create_tables.py` to backfill and alter existing `digests` rows for the new metadata fields.
+- Updated `PipelineTracker`-adjacent digest flow so existing digests are now touched when the source item is seen again, instead of only recording the original generation timestamp forever.
+- Updated `process_digest()` to stamp new digests with version/freshness/model metadata.
+- Updated `process_curator()` to:
+  - rank the last 7 days of digests instead of only same-day digests
+  - persist each curator run and ranked item
+- Updated `process_youtube_email()` to reuse the latest saved curator run for the current pipeline run when available, avoiding a redundant ranking API call.
+- Added monitoring analytics for:
+  - ranking drift
+  - digest freshness
+- Expanded monitoring CLI and Makefile with:
+  - `ranking-drift`
+  - `digest-freshness`
+  - `make monitoring-ranking-drift`
+  - `make monitoring-digest-freshness`
+- Extended the rule-based monitoring summary so it can surface ranking drift and stale-ranked-digest warnings when enough data exists.
+- Updated `docs/MONITORING_PHASES.md`, `docs/MONITORING_QUERIES.md`, and `docs/FUTURE_FEATURES.md` to reflect the shipped state.
+
+### What works
+- The database now contains `curator_runs` and `curator_rankings` tables.
+- Digest freshness metadata is backfilled and queryable.
+- `scripts/monitoring_report.py ranking-drift ...` works and handles the empty-history case cleanly.
+- `scripts/monitoring_report.py digest-freshness ...` works against current DB data.
+- `make monitoring-ranking-drift` and `make monitoring-digest-freshness` resolve to the expected commands.
+
+### Errors hit
+- Running schema creation and the new ranking/freshness reports in parallel caused a race where the reports executed before the new tables were created. The DB schema itself was correct; rerunning the reports after table creation resolved it.
+
+### What's next
+1. Add batch/retry telemetry so API-heavy stages can be optimized with evidence instead of inference.
+2. Detect when stale digests dominate top-ranked results, not just when stale digests are present.
+3. Add stronger ranking-stability summaries once enough persisted curator history exists.
+
+---
+
+## 2026-03-12 — Remaining monitoring phases completed
+
+### Structure changes
+- Added `app/services/retry_utils.py`.
+
+### What was built / changed
+- Added stage-level telemetry fields to `pipeline_stage_metrics` for:
+  - `batch_size`
+  - `total_batches`
+  - `retry_count`
+  - `backoff_count`
+  - `concurrency_level`
+  - `model_name`
+  - `prompt_version`
+- Extended `StageMonitor` and `PipelineTracker` so stages can record the new telemetry without changing the core monitoring lifecycle.
+- Added `app/services/retry_utils.py` and wired retry/backoff handling into API-heavy stages:
+  - `digest_videos`
+  - `events_enrichment`
+  - `curator`
+  - `youtube_email`
+  - `events_email`
+- Added stage-performance analytics for:
+  - p95 / p99 latency
+  - batch telemetry
+  - retry summary
+  - focus-signal snapshot
+  - stale top-rank dominance
+- Expanded the CLI with `batch-telemetry`.
+- Expanded `Makefile` with:
+  - `monitoring-batch-telemetry`
+  - `help`
+- Strengthened the rule-based monitoring summary so it now:
+  - ranks focus items by severity
+  - scores regressions using both percentage and absolute increase
+  - detects when stale digests dominate the latest top-ranked items
+- Updated monitoring docs/checklists so nearly all monitoring phases are now marked complete.
+
+### What works
+- Monitoring can now report p95/p99 stage latency.
+- Monitoring can now report batch/retry/concurrency/model/prompt telemetry for new runs.
+- `make help` exposes the monitoring command surface directly.
+- Summary output now includes ranking-drift signals and can detect stale-top-ranked dominance when the data supports it.
+
+### Errors hit
+- Running schema migration and telemetry-heavy reports in parallel caused a transient race where reports queried new columns before the `ALTER TABLE` finished. Rerunning after schema creation completed resolved it.
+- Existing historical runs predate the new batch/retry telemetry columns, so telemetry sections show zero/default values until fresh runs are recorded with the new instrumentation.
+
+### What's next
+1. Reuse the monitoring query layer in future API, dashboard, or MCP surfaces instead of re-implementing reporting logic.
+2. Add provider/token/cost telemetry later only if truthful cost analytics becomes a real requirement.
+
+---
+
+## 2026-03-12 — Run bootstrap and abort-path hardening
+
+### Structure changes
+- None. This session changed workflow and failure handling only.
+
+### What was built / changed
+- Updated `Makefile` so `make run` now depends on `db-init`, ensuring schema bootstrap runs before the pipeline starts.
+- Hardened `PipelineTracker.abort()` to roll back the SQLAlchemy session before abort handling, which prevents a secondary `PendingRollbackError` after a flush failure.
+
+### What works
+- `make -n run` now expands to:
+  - `uv run scripts/create_tables.py`
+  - `uv run main.py`
+- The abort path is now resilient to session rollback state after insert/flush failures.
+
+### Errors hit
+- The original `make run` failure happened because the pipeline started writing new `pipeline_stage_metrics` columns before the local DB schema had been updated with those columns.
+
+### What's next
+1. Re-run `make run` now that schema bootstrap is chained automatically.
+2. Use the next fresh run to populate the new batch/retry telemetry columns.
+
+---
+
+## 2026-03-12 — YouTube Shorts cache + scrape telemetry
+
+### Structure changes
+- None. This session added a DB table and telemetry columns, but no new repo paths.
+
+### What was built / changed
+- Added `youtube_video_classifications` as a persisted cache for YouTube Shorts classification results.
+- Updated `app/scrapers/youtube/scraper.py` so Shorts checks now:
+  - reuse cached classifications across runs
+  - reuse one `httpx.Client` per scrape pass instead of opening a fresh request client per check
+  - avoid caching network failures as false negatives
+- Added a dedicated `youtube_short_checks` monitoring stage in the main pipeline.
+- Extended `pipeline_stage_metrics` with generic execution counters:
+  - `items_skipped`
+  - `cache_hit_count`
+  - `network_call_count`
+- Extended recent-runs and telemetry reports so scrape stages can now show cache hits, network calls, and skipped items instead of only duration.
+- Extended the rule-based monitoring summary so it can flag an expensive Shorts-check path when network calls stay high and keep-rate stays low.
+- Updated `scripts/create_tables.py` so existing Postgres tables gain the new monitoring columns and the new Shorts-classification table.
+- Updated monitoring docs to record the new Shorts cache and scrape telemetry behavior.
+
+### What works
+- Schema bootstrap now creates `youtube_video_classifications`.
+- Monitoring reports compile and run with the new stage-metric counters after schema bootstrap.
+- The Shorts-classification path is now capable of recording:
+  - total classification attempts
+  - filtered Shorts
+  - cache hits
+  - fresh network calls
+- Network classification failures no longer poison the cache.
+
+### Errors hit
+- Running `create_tables.py` and read-heavy monitoring reports in parallel caused a Postgres deadlock while altering `pipeline_stage_metrics`. Running schema bootstrap first and the reports second resolved it.
+- The latest successful monitoring run still predates this Shorts-cache change, so `youtube_short_checks` will not appear in reports until the next fresh pipeline run is recorded.
+
+### What's next
+1. Run the pipeline again so `youtube_short_checks` telemetry is recorded on a fresh run.
+2. Compare the next run against the current baseline to confirm Shorts cache hits replace repeated network calls.
+3. If Shorts checks are still a major scrape bottleneck after the cache warms up, add bounded concurrency for uncached classifications.

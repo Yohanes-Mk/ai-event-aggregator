@@ -7,10 +7,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.db.session import SessionLocal
 from app.monitoring.report import (
+    generate_batch_telemetry_report,
     generate_compare_report,
+    generate_digest_freshness_report,
     generate_failures_report,
     generate_health_report,
     generate_recent_runs_report,
+    generate_ranking_drift_report,
     generate_stage_performance_report,
     generate_summary_report,
     generate_throughput_report,
@@ -50,8 +53,21 @@ def main() -> None:
     throughput = subparsers.add_parser("throughput", help="Print throughput analytics.")
     throughput.add_argument("--days", type=int, default=30, help="Window size in days.")
 
+    batch_telemetry = subparsers.add_parser("batch-telemetry", help="Print batch, retry, and concurrency telemetry.")
+    batch_telemetry.add_argument("--days", type=int, default=30, help="Window size in days.")
+
     summary = subparsers.add_parser("summary", help="Print rule-based monitoring focus areas.")
     summary.add_argument("--days", type=int, default=7, help="Window size in days.")
+
+    ranking_drift = subparsers.add_parser("ranking-drift", help="Print ranking drift analytics.")
+    ranking_drift.add_argument("--days", type=int, default=30, help="Window size in days.")
+    ranking_drift.add_argument("--min-score-delta", type=int, default=10, help="Minimum score delta to include.")
+    ranking_drift.add_argument("--limit", type=int, default=20, help="Row limit.")
+
+    digest_freshness = subparsers.add_parser("digest-freshness", help="Print digest freshness analytics.")
+    digest_freshness.add_argument("--days", type=int, default=30, help="Window size in days.")
+    digest_freshness.add_argument("--stale-after-days", type=int, default=7, help="Age threshold for stale digests.")
+    digest_freshness.add_argument("--limit", type=int, default=20, help="Row limit.")
 
     compare = subparsers.add_parser("compare", help="Compare stage performance across two periods.")
     compare.add_argument("--before-start", required=True, help="Inclusive before-window start (ISO date or datetime).")
@@ -74,8 +90,24 @@ def main() -> None:
             report = generate_failures_report(db, days=args.days, limit=args.limit)
         elif args.command == "throughput":
             report = generate_throughput_report(db, days=args.days)
+        elif args.command == "batch-telemetry":
+            report = generate_batch_telemetry_report(db, days=args.days)
         elif args.command == "summary":
             report = generate_summary_report(db, days=args.days)
+        elif args.command == "ranking-drift":
+            report = generate_ranking_drift_report(
+                db,
+                days=args.days,
+                min_score_delta=args.min_score_delta,
+                limit=args.limit,
+            )
+        elif args.command == "digest-freshness":
+            report = generate_digest_freshness_report(
+                db,
+                days=args.days,
+                stale_after_days=args.stale_after_days,
+                limit=args.limit,
+            )
         elif args.command == "compare":
             report = generate_compare_report(
                 db,

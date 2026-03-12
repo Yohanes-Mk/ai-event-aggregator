@@ -5,22 +5,29 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.monitoring.queries import (
+    get_batch_telemetry,
     compare_periods,
     compare_stage_efficiency_periods,
     get_ai_workload,
+    get_focus_signal_snapshot,
     get_error_frequency,
     get_error_prone_stages,
     get_incomplete_runs,
     get_overall_health,
     get_persistent_failing_items,
+    get_digest_freshness,
     get_recent_errors,
     get_recent_runs,
+    get_retry_summary,
+    get_ranking_drift,
     get_run_duration_trend,
     get_slowest_runs,
     get_stage_efficiency,
     get_stage_failure_rates,
+    get_stage_latency_percentiles,
     get_stage_performance,
     get_stage_status_distribution,
+    get_stale_top_rank_dominance,
     get_stage_variance,
     get_stage_volume_trend,
     get_success_rate_trend,
@@ -72,7 +79,13 @@ def generate_recent_runs_report(db: Session, limit: int = 10) -> str:
                     "  stage="
                     f"{stage.stage} group={stage.stage_group} status={stage.status} "
                     f"duration={stage.duration_seconds:.1f}s attempted={stage.items_attempted} "
-                    f"succeeded={stage.items_succeeded} failed={stage.items_failed}"
+                    f"succeeded={stage.items_succeeded} failed={stage.items_failed} "
+                    f"skipped={stage.items_skipped} cache_hits={stage.cache_hit_count} "
+                    f"network_calls={stage.network_call_count} "
+                    f"batch_size={stage.batch_size or '-'} total_batches={stage.total_batches or '-'} "
+                    f"retries={stage.retry_count} backoffs={stage.backoff_count} "
+                    f"concurrency={stage.concurrency_level or '-'} model={stage.model_name or '-'} "
+                    f"prompt={stage.prompt_version or '-'}"
                 )
         if run.notes:
             lines.append(f"  notes={run.notes}")
@@ -136,10 +149,12 @@ def generate_health_report(db: Session, days: int = 30, slowest_limit: int = 10)
 def generate_stage_performance_report(db: Session, days: int = 30) -> str:
     performance = get_stage_performance(db, days=days)
     efficiency = get_stage_efficiency(db, days=days)
+    latency_percentiles = get_stage_latency_percentiles(db, days=days)
     variance = get_stage_variance(db, days=days)
     status_distribution = get_stage_status_distribution(db, days=days)
     stage_volume = get_stage_volume_trend(db, days=days)
     ai_workload = get_ai_workload(db, days=days)
+    batch_telemetry = get_batch_telemetry(db, days=days)
 
     lines: list[str] = _section(f"Stage Performance ({days}d)")
 
@@ -174,6 +189,16 @@ def generate_stage_performance_report(db: Session, days: int = 30) -> str:
                 f"stddev={row.stddev_seconds:.1f}s variance={row.variance_percent:.1f}%"
             )
 
+    lines.extend(_section("Stage Latency Percentiles"))
+    if not latency_percentiles:
+        lines.append("No percentile data found.")
+    else:
+        for row in latency_percentiles:
+            lines.append(
+                f"{row.stage} [{row.stage_group}]: p95={row.p95_seconds:.1f}s "
+                f"p99={row.p99_seconds:.1f}s samples={row.sample_count}"
+            )
+
     lines.extend(_section("Stage Status Distribution"))
     if not status_distribution:
         lines.append("No stage status data found.")
@@ -201,6 +226,21 @@ def generate_stage_performance_report(db: Session, days: int = 30) -> str:
                 f"items={row.items_processed} avg_duration={row.avg_duration_seconds:.1f}s"
             )
 
+    lines.extend(_section("Batch, Cache, and Retry Telemetry"))
+    if not batch_telemetry:
+        lines.append("No batch telemetry found.")
+    else:
+        for row in batch_telemetry:
+            lines.append(
+                f"{row.stage} [{row.stage_group}]: avg_batch_size={row.avg_batch_size:.2f} "
+                f"avg_total_batches={row.avg_total_batches:.2f} avg_seconds_per_batch={row.avg_seconds_per_batch:.2f} "
+                f"avg_retries={row.avg_retry_count:.2f} avg_backoffs={row.avg_backoff_count:.2f} "
+                f"avg_concurrency={row.avg_concurrency_level:.2f} avg_skipped={row.avg_items_skipped:.2f} "
+                f"avg_cache_hits={row.avg_cache_hits:.2f} avg_network_calls={row.avg_network_calls:.2f} "
+                f"models={', '.join(row.model_names) or '-'} "
+                f"prompts={', '.join(row.prompt_versions) or '-'}"
+            )
+
     return "\n".join(lines)
 
 
@@ -210,6 +250,7 @@ def generate_failures_report(db: Session, days: int = 30, limit: int = 20) -> st
     persistent_items = get_persistent_failing_items(db, days=days, limit=limit)
     recent_errors = get_recent_errors(db, days=min(days, 7), limit=limit)
     error_prone_stages = get_error_prone_stages(db, days=days)
+    retry_summary = get_retry_summary(db, days=days)
     top_failed_runs = get_top_failed_runs(db, days=days, limit=min(limit, 10))
 
     lines: list[str] = _section(f"Failure Analysis ({days}d)")
@@ -241,6 +282,17 @@ def generate_failures_report(db: Session, days: int = 30, limit: int = 20) -> st
         for row in error_prone_stages:
             lines.append(
                 f"{row.stage} [{row.stage_group}]: errors={row.error_count} affected_runs={row.distinct_runs}"
+            )
+
+    lines.extend(_section("Retry Summary"))
+    if not retry_summary:
+        lines.append("No retry telemetry found.")
+    else:
+        for row in retry_summary:
+            lines.append(
+                f"{row.stage} [{row.stage_group}]: total_retries={row.total_retries} "
+                f"total_backoffs={row.total_backoffs} affected_runs={row.affected_runs} "
+                f"retry_rate={row.retry_rate_percent:.1f}%"
             )
 
     lines.extend(_section("Persistent Failing Items"))
@@ -300,6 +352,78 @@ def generate_throughput_report(db: Session, days: int = 30) -> str:
         for row in stage_volume:
             lines.append(f"{row.run_date}: {row.stage} [{row.stage_group}] attempted={row.items_attempted}")
 
+    return "\n".join(lines)
+
+
+def generate_ranking_drift_report(
+    db: Session,
+    days: int = 30,
+    min_score_delta: int = 10,
+    limit: int = 20,
+) -> str:
+    drift_rows = get_ranking_drift(db, days=days, min_score_delta=min_score_delta, limit=limit)
+    lines: list[str] = _section(f"Ranking Drift ({days}d)")
+    if not drift_rows:
+        lines.append("No material ranking drift found.")
+        return "\n".join(lines)
+
+    for row in drift_rows:
+        lines.append(
+            f"{row.article_type}:{row.article_id} | title={row.title} | runs={row.run_count} "
+            f"min_score={row.min_score} max_score={row.max_score} delta={row.score_delta} "
+            f"latest_ranked_at={_format_dt(row.latest_ranked_at)}"
+        )
+    return "\n".join(lines)
+
+
+def generate_digest_freshness_report(
+    db: Session,
+    days: int = 30,
+    stale_after_days: int = 7,
+    limit: int = 20,
+) -> str:
+    rows = get_digest_freshness(db, days=days, stale_after_days=stale_after_days, limit=limit)
+    lines: list[str] = _section(f"Digest Freshness ({days}d)")
+    if not rows:
+        lines.append("No digest freshness data found.")
+        return "\n".join(lines)
+
+    for row in rows:
+        lines.append(
+            f"{row.article_type}:{row.article_id} | title={row.title} | version={row.digest_version} "
+            f"age_days={row.digest_age_days:.1f} stale={str(row.is_stale).lower()} "
+            f"rankings_recent={row.ranking_count_recent} generated_at={_format_dt(row.digest_generated_at)} "
+            f"last_seen={_format_dt(row.content_last_seen_at)} latest_ranked_at={_format_dt(row.latest_ranked_at)}"
+        )
+    return "\n".join(lines)
+
+
+def generate_batch_telemetry_report(db: Session, days: int = 30) -> str:
+    telemetry = get_batch_telemetry(db, days=days)
+    retry_summary = get_retry_summary(db, days=days)
+    lines: list[str] = _section(f"Batch, Cache, and Retry Telemetry ({days}d)")
+    if not telemetry:
+        lines.append("No batch telemetry found.")
+    else:
+        for row in telemetry:
+            lines.append(
+                f"{row.stage} [{row.stage_group}]: runs={row.stage_run_count} avg_batch_size={row.avg_batch_size:.2f} "
+                f"avg_total_batches={row.avg_total_batches:.2f} avg_seconds_per_batch={row.avg_seconds_per_batch:.2f} "
+                f"avg_retries={row.avg_retry_count:.2f} avg_backoffs={row.avg_backoff_count:.2f} "
+                f"avg_concurrency={row.avg_concurrency_level:.2f} avg_skipped={row.avg_items_skipped:.2f} "
+                f"avg_cache_hits={row.avg_cache_hits:.2f} avg_network_calls={row.avg_network_calls:.2f}"
+            )
+
+    lines.extend(_section("Retry Summary"))
+    if not retry_summary:
+        lines.append("No retry telemetry found.")
+    else:
+        for row in retry_summary:
+            lines.append(
+                f"{row.stage} [{row.stage_group}]: total_retries={row.total_retries} "
+                f"total_backoffs={row.total_backoffs} affected_runs={row.affected_runs} "
+                f"retry_rate={row.retry_rate_percent:.1f}%"
+            )
     return "\n".join(lines)
 
 

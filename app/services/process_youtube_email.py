@@ -14,8 +14,10 @@ from app.db.models import YouTubeVideo
 from app.email.render import render_youtube_email
 from app.monitoring import StageMonitor
 from app.monitoring.tracker import PipelineTracker
+from app.services.retry_utils import run_with_retries
 from agent import curator_agent
 from agent.youtube_email_agent import run as generate_email
+from agent import youtube_email_agent
 
 logger = logging.getLogger(__name__)
 
@@ -48,24 +50,14 @@ def process_youtube_email(db: Session, tracker: PipelineTracker | None = None) -
             logger.info("  No digests in the last 7 days. Skipping email.")
             return
 
-        logger.info("  Ranking %s item(s) for email...", len(digests))
+        logger.info("  Preparing %s item(s) for email...", len(digests))
         stage.attempt()
-
-        try:
-            curator_result = curator_agent.run(digests)
-        except Exception as exc:
-            stage.fail(exc)
-            logger.exception("Curator ranking failed for youtube email")
-            return
-
-        # Deduplicate and take top 10
-        seen: set[str] = set()
-        top_10 = []
-        for article in curator_result.ranked_articles:
-            if article.article_id in seen:
-                continue
-            seen.add(article.article_id)
-            top_10.append(article)
+        stage.set_model_info(
+            model_name=youtube_email_agent.MODEL_NAME,
+            prompt_version=youtube_email_agent.PROMPT_VERSION,
+        )
+        stage.set_batch_info(batch_size=min(len(digests), 10), total_batches=1)
+        stage.set_concurrency(1)
 
         # Pull channel_id from youtube_videos for link building
         video_ids = [d.article_id for d in digests if d.article_type == "youtube"]
@@ -83,12 +75,65 @@ def process_youtube_email(db: Session, tracker: PipelineTracker | None = None) -
                 "tools_concepts": d.tools_concepts or "",
                 "channel_name": d.source or "Unknown Channel",
                 "channel_id": channel_id_map.get(d.article_id, ""),
+                "summary": d.summary,
             }
             for d in digests
         }
 
+        latest_curator_run = repository.get_latest_curator_run(
+            db,
+            pipeline_run_id=tracker.run.id if tracker and tracker.run is not None else None,
+        )
+
+        top_10 = []
+        if latest_curator_run is not None:
+            logger.info("  Reusing curator run id=%s for email...", latest_curator_run.id)
+            for ranking in repository.get_curator_rankings(db, latest_curator_run.id, limit=10):
+                meta = digest_map.get(ranking.article_id)
+                if meta is None:
+                    continue
+                top_10.append(
+                    curator_agent.RankedArticle(
+                        article_id=ranking.article_id,
+                        article_type=ranking.article_type,
+                        title=ranking.title,
+                        summary=meta["summary"],
+                        score=ranking.score,
+                        ranking_reason=ranking.ranking_reason,
+                    )
+                )
+        else:
+            logger.info("  No saved curator run found. Ranking %s item(s) directly for email...", len(digests))
+            try:
+                curator_result = run_with_retries(
+                    lambda: curator_agent.run(digests),
+                    max_attempts=3,
+                    backoff_seconds=1.0,
+                    on_retry=lambda _attempt, _backoff: _record_retry(stage),
+                )
+            except Exception as exc:
+                stage.fail(exc)
+                logger.exception("Curator ranking failed for youtube email")
+                return
+
+            seen: set[str] = set()
+            for article in curator_result.ranked_articles:
+                if article.article_id in seen:
+                    continue
+                seen.add(article.article_id)
+                top_10.append(article)
+
+        if not top_10:
+            logger.info("  No ranked YouTube items available for email.")
+            return
+
         try:
-            email_result = generate_email(top_10, digest_map)
+            email_result = run_with_retries(
+                lambda: generate_email(top_10, digest_map),
+                max_attempts=3,
+                backoff_seconds=1.0,
+                on_retry=lambda _attempt, _backoff: _record_retry(stage),
+            )
         except Exception as exc:
             stage.fail(exc)
             logger.exception("YouTube email generation failed")
@@ -112,3 +157,8 @@ def process_youtube_email(db: Session, tracker: PipelineTracker | None = None) -
 
         stage.succeed()
         logger.info("  Email sent.")
+
+
+def _record_retry(stage: StageMonitor) -> None:
+    stage.add_retry()
+    stage.add_backoff()

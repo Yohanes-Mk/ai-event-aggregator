@@ -25,6 +25,10 @@ This file tracks future features, enhancements, and follow-up ideas that come up
 | Pipeline Monitoring Foundation | 2026-03-12 | Structured logging, run/stage/error tracking, and monitoring CLI report. | Monitoring foundation session |
 | Monitoring Query Layer | 2026-03-12 | Reusable analytics helpers, richer monitoring CLI modes, and SQL reference docs. | Monitoring query layer session |
 | Rule-Based Monitoring Summary | 2026-03-12 | Deterministic focus-area summary over monitoring analytics with direct operator recommendations. | Monitoring phases session |
+| Ranking History Persistence | 2026-03-12 | Curator runs and per-item rankings are now stored so score drift and ranking stability can be analyzed. | Monitoring phases session |
+| Digest Freshness and Versioning | 2026-03-12 | Digests now track generation/version/freshness metadata for stale-content analysis. | Monitoring phases session |
+| Batch/Retry Telemetry | 2026-03-12 | Stage metrics now record batch, retry, backoff, concurrency, model, and prompt telemetry for API-heavy stages. | Monitoring completion session |
+| YouTube Shorts Classification Cache | 2026-03-12 | Shorts checks now use a persisted classification cache plus scrape telemetry for cache hits, network calls, and filtered Shorts. | Shorts optimization session |
 
 ## Current Backlog
 
@@ -37,9 +41,6 @@ This file tracks future features, enhancements, and follow-up ideas that come up
 | Monitoring HTML Report | Proposed | Add a richer visual run report using monitoring data and existing templates. | Monitoring evolution path |
 | Metrics Export / Prometheus Adapter | Proposed | Export stage timing and failure data to external metrics systems without changing stage tracking. | Monitoring evolution path |
 | Monitoring Telemetry Extension | Proposed | Add provider/model/token/cost telemetry so future analytics can answer billing and model-usage questions honestly. | Monitoring query layer next track |
-| Ranking History Persistence | Proposed | Persist curator runs and per-item ranking history so score drift and ranking volatility can be measured. | Monitoring phases plan |
-| Digest Freshness and Versioning | Proposed | Track digest freshness and version metadata so stale summaries are visible in monitoring and ranking analysis. | Monitoring phases plan |
-| Batch/Retry Telemetry | Proposed | Track batch size, retries, and backoff counts so batching and API optimizations can be measured honestly. | Monitoring phases plan |
 | Pipeline Error Retention Automation | Proposed | Automate cleanup of old `pipeline_errors` rows instead of relying on manual SQL. | Monitoring implementation follow-up |
 | Slack Digest Delivery | Proposed | Deliver curated content through Slack in addition to email. | Earlier notification backlog |
 | Interactive Channel Selector Wiring | Proposed | Wire `app/scrapers/youtube/selector.py` into the main workflow when interactive channel picking is needed. | 2026-03-11 selector session |
@@ -103,3 +104,29 @@ This file tracks future features, enhancements, and follow-up ideas that come up
 ### Why this changed
 - Monitoring now has an operator-facing summary layer, not just raw reports.
 - The next meaningful monitoring work is no longer generic; it is specifically ranking history, digest freshness, and optimization telemetry.
+
+---
+
+## 2026-03-12 — Ranking history + digest freshness shipped
+
+### What changed
+- Moved `Ranking History Persistence` into `Implemented Features`.
+- Moved `Digest Freshness and Versioning` into `Implemented Features`.
+- Kept `Batch/Retry Telemetry` in `Current Backlog`.
+
+### Why this changed
+- Curator runs and per-item rankings are now stored, which makes score drift measurable.
+- Digests now carry version and freshness metadata, which makes stale-content analysis possible.
+- The next monitoring gap is optimization telemetry, not ranking/freshness persistence.
+
+---
+
+## 2026-03-12 — Batch/retry telemetry + operator completion
+
+### What changed
+- Moved `Batch/Retry Telemetry` into `Implemented Features`.
+- Left `Monitoring Telemetry Extension` in `Current Backlog` for future provider/token/cost-level telemetry.
+
+### Why this changed
+- Monitoring now records operational optimization telemetry at the stage level.
+- The remaining telemetry work is the higher-cost, more specialized provider/token/cost layer rather than basic retry/batch observability.
