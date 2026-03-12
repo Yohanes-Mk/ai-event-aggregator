@@ -4,36 +4,139 @@ Updates are appended at the bottom. Nothing is deleted — this is a running log
 
 > **Convention:** Update this file after every work session.
 > Add what we built, what works, what doesn't, any errors hit, what's next.
-> Never delete earlier entries — append new sections at the bottom.
-> If something is replaced, removed, or no longer relevant, note that in the new entry (e.g. "replaced X with Y", "X removed — no longer needed") rather than erasing the old entry.
+> Keep the `Current Hierarchy` section below accurate for the current repo state.
+> Keep the `Path Lifecycle Ledger` below accurate for major path creates, removes, moves, and renames.
+> Never delete earlier session entries — append new sections at the bottom.
+> If something is replaced, removed, or no longer relevant, update the lifecycle ledger and note it in the new session entry rather than erasing old session history.
+
+---
+
+## Current Hierarchy
+
+Major paths only. This section is the current-state structure reference, not a full file inventory.
+
+```
+ai-event-agreegator/
+├── agent/
+│   ├── __init__.py
+│   ├── curator_agent.py
+│   ├── event_agent.py
+│   ├── events_email_agent.py
+│   ├── youtube_agent.py
+│   └── youtube_email_agent.py
+├── app/
+│   ├── db/
+│   │   ├── __init__.py
+│   │   ├── models.py
+│   │   ├── repository.py
+│   │   └── session.py
+│   ├── email/
+│   │   ├── __init__.py
+│   │   └── render.py
+│   ├── models/
+│   │   └── __init__.py
+│   ├── monitoring/
+│   │   ├── __init__.py
+│   │   ├── alerts.py
+│   │   ├── logging_config.py
+│   │   ├── models.py
+│   │   ├── queries.py
+│   │   ├── report.py
+│   │   ├── stage.py
+│   │   ├── summary.py
+│   │   └── tracker.py
+│   ├── scrapers/
+│   │   ├── events/
+│   │   │   ├── __init__.py
+│   │   │   ├── feeds.py
+│   │   │   └── scraper.py
+│   │   └── youtube/
+│   │       ├── __init__.py
+│   │       ├── channels.py
+│   │       ├── resolver.py
+│   │       ├── scraper.py
+│   │       └── selector.py
+│   └── services/
+│       ├── __init__.py
+│       ├── process_curator.py
+│       ├── process_digest.py
+│       ├── process_events_email.py
+│       └── process_youtube_email.py
+├── docs/
+│   ├── FUTURE_FEATURES.md
+│   ├── INTERACTIVE_WINDOW.md
+│   ├── MONITORING_PHASES.md
+│   ├── MONITORING_QUERIES.md
+│   ├── PROJECT_STATUS.md
+│   └── user_context.md
+├── infra/
+│   ├── Dockerfile
+│   └── docker-compose.yml
+├── scripts/
+│   ├── create_tables.py
+│   ├── get_channel_id.py
+│   └── monitoring_report.py
+├── templates/
+│   └── dashboard.html
+├── tests/
+│   ├── __init__.py
+│   ├── test_event_scraper.py
+│   └── test_youtube_scraper.py
+├── .env.example
+├── .gitignore
+├── .python-version
+├── AGENTS.md
+├── Makefile
+├── README.md
+├── ai-event-agreegator.code-workspace
+├── main.py
+├── pyproject.toml
+└── uv.lock
+```
+
+## Path Lifecycle Ledger
+
+Major paths only. Use this ledger for creates, removes, moves, and renames that materially affect project structure.
+
+| Path | Kind | Created | Removed | Notes |
+|---|---|---|---|---|
+| `agent/` | dir | 2026-03-10 |  | Initial project scaffold. |
+| `app/` | dir | 2026-03-10 |  | Core application package. |
+| `app/db/` | dir | 2026-03-10 |  | Scaffolded initially; DB models and repository added later the same day. |
+| `app/models/` | dir | 2026-03-10 |  | Shared app-level models package; currently minimal. |
+| `app/scrapers/events/` | dir | 2026-03-10 |  | Event scraping added in session 2. |
+| `app/email/` | dir | 2026-03-11 |  | HTML email rendering package. |
+| `app/monitoring/` | dir | 2026-03-12 |  | Pipeline monitoring foundation v1. |
+| `app/monitoring/queries.py` | file | 2026-03-12 |  | Reusable monitoring analytics layer. |
+| `app/monitoring/summary.py` | file | 2026-03-12 |  | Rule-based monitoring focus-area summary layer. |
+| `docs/` | dir | 2026-03-10 |  | Introduced during project cleanup; houses project docs. |
+| `docs/FUTURE_FEATURES.md` | file | 2026-03-12 |  | Append-only future feature tracker. |
+| `docs/INTERACTIVE_WINDOW.md` | file | 2026-03-10 |  | Created at repo root, moved into `docs/` during cleanup. |
+| `docs/MONITORING_PHASES.md` | file | 2026-03-12 |  | Monitoring roadmap and implementation checklist. |
+| `docs/MONITORING_QUERIES.md` | file | 2026-03-12 |  | SQL reference and query-surface documentation for monitoring analytics. |
+| `docs/PROJECT_STATUS.md` | file | 2026-03-10 |  | Created at repo root, moved into `docs/` during cleanup. |
+| `docs/user_context.md` | file | 2026-03-11 |  | Curator personalization context. |
+| `infra/` | dir | 2026-03-10 |  | Infrastructure files moved here during cleanup. |
+| `scripts/` | dir | 2026-03-10 |  | Utility and DB bootstrap scripts. |
+| `scripts/monitoring_report.py` | file | 2026-03-12 |  | CLI report for pipeline monitoring. |
+| `templates/` | dir | 2026-03-11 |  | Dashboard HTML assets. |
+| `tests/` | dir | 2026-03-10 |  | Integration tests. |
+| `AGENTS.md` | file | 2026-03-12 |  | Repo-local agent workflow rules. |
+| `Makefile` | file | 2026-03-10 |  | Added during project cleanup. |
+| `main.py` | file | 2026-03-10 |  | Root pipeline entrypoint. |
+| `docker-compose.yml` | file | 2026-03-10 | 2026-03-10 | Replaced by `infra/docker-compose.yml` during project cleanup. |
+| `Dockerfile` | file | 2026-03-10 | 2026-03-10 | Replaced by `infra/Dockerfile` during project cleanup. |
+| `INTERACTIVE_WINDOW.md` | file | 2026-03-10 | 2026-03-10 | Moved to `docs/INTERACTIVE_WINDOW.md` during project cleanup. |
+| `PROJECT_STATUS.md` | file | 2026-03-10 | 2026-03-10 | Moved to `docs/PROJECT_STATUS.md` during project cleanup. |
+
+## Session Log
 
 ---
 
 ## 2026-03-10 — Initial status snapshot
 
-### Folder Hierarchy
-
-```
-ai-event-agreegator/
-├── agent/                          # (empty) future agent logic
-├── app/
-│   ├── db/                         # (empty) database setup, connection
-│   ├── models/                     # (empty) shared app-level models
-│   ├── scrapers/
-│   │   ├── events/                 # (empty) future event scraper
-│   │   └── youtube/
-│   │       ├── __init__.py         # exports: YouTubeScraper, Video, Channel, CHANNELS
-│   │       ├── channels.py         # CHANNELS list (8 pre-configured channels)
-│   │       └── scraper.py          # Channel, Video (Pydantic), YouTubeScraper class
-│   └── services/                   # (empty) future summarisation / LLM services
-├── tests/
-│   └── test_youtube_scraper.py     # integration tests (hits real YouTube RSS)
-├── .env.example                    # DATABASE_URL, OPENAI_API_KEY, Postgres creds
-├── docker-compose.yml              # Postgres 16 + app container
-├── Dockerfile
-├── pyproject.toml                  # Python 3.14, all deps declared
-└── uv.lock
-```
+### Structure changes
+- Baseline repo scaffold established with `agent/`, `app/`, `tests/`, root Docker files, and root project docs before later cleanup moved infrastructure/docs into dedicated directories.
 
 ### What's been built
 
@@ -94,34 +197,8 @@ ai-event-agreegator/
 
 ## 2026-03-10 — EventScraper built
 
-### Folder Hierarchy changes
-`app/scrapers/events/` was empty — now populated:
-
-```
-ai-event-agreegator/
-├── agent/                          # (empty) future agent logic
-├── app/
-│   ├── db/                         # (empty) database setup, connection
-│   ├── models/                     # (empty) shared app-level models
-│   ├── scrapers/
-│   │   ├── events/
-│   │   │   ├── __init__.py         # exports: EventScraper, Event, FEEDS
-│   │   │   ├── feeds.py            # FEEDS list (2 iCal feed URLs)
-│   │   │   └── scraper.py          # Event (Pydantic), EventScraper class
-│   │   └── youtube/
-│   │       ├── __init__.py         # exports: YouTubeScraper, Video, Channel, CHANNELS
-│   │       ├── channels.py         # CHANNELS list (8 pre-configured channels)
-│   │       └── scraper.py          # Channel, Video (Pydantic), YouTubeScraper class
-│   └── services/                   # (empty) future summarisation / LLM services
-├── tests/
-│   ├── test_event_scraper.py       # integration tests (hits real iCal feeds)
-│   └── test_youtube_scraper.py     # integration tests (hits real YouTube RSS)
-├── .env.example                    # DATABASE_URL, OPENAI_API_KEY, Postgres creds
-├── docker-compose.yml              # Postgres 16 + app container
-├── Dockerfile
-├── pyproject.toml                  # added: icalendar>=7.0.3
-└── uv.lock
-```
+### Structure changes
+- Added `app/scrapers/events/` and `tests/test_event_scraper.py`.
 
 ### What was built
 
@@ -273,42 +350,9 @@ FEEDS = [
 
 ## 2026-03-10 — main.py + YouTube Shorts filter + Event deduplication
 
-### Folder hierarchy (current, complete)
-
-```
-ai-event-agreegator/
-├── agent/                          # (empty) future agent logic
-├── app/
-│   ├── __init__.py                 # (empty) package resolution
-│   ├── db/
-│   │   └── __init__.py             # (empty) package resolution
-│   ├── models/
-│   │   └── __init__.py             # (empty) package resolution
-│   ├── scrapers/
-│   │   ├── __init__.py             # (empty) package resolution
-│   │   ├── events/
-│   │   │   ├── __init__.py         # exports: EventScraper, Event, FEEDS
-│   │   │   ├── feeds.py            # FEEDS list — 25 iCal feeds
-│   │   │   └── scraper.py          # Event (Pydantic), EventScraper class
-│   │   └── youtube/
-│   │       ├── __init__.py         # exports: YouTubeScraper, Video, Channel, CHANNELS
-│   │       ├── channels.py         # CHANNELS list (8 pre-configured channels)
-│   │       └── scraper.py          # Channel, Video (Pydantic), YouTubeScraper class
-│   └── services/
-│       └── __init__.py             # (empty) package resolution
-├── tests/
-│   ├── __init__.py                 # (empty) package resolution
-│   ├── test_event_scraper.py       # integration tests (hits real iCal feeds)
-│   └── test_youtube_scraper.py     # integration tests (hits real YouTube RSS)
-├── .env.example
-├── docker-compose.yml
-├── Dockerfile
-├── INTERACTIVE_WINDOW.md           # cheatsheet for VSCode Interactive Window
-├── main.py                         # NEW — runs both scrapers, prints summary
-├── PROJECT_STATUS.md
-├── pyproject.toml
-└── uv.lock
-```
+### Structure changes
+- Added `main.py` at repo root.
+- Added package `__init__.py` files under `app/` and `tests/`.
 
 ### What was built / changed
 
@@ -352,6 +396,11 @@ ai-event-agreegator/
 
 ## 2026-03-10 — DB layer + project cleanup
 
+### Structure changes
+- Created `infra/`, `scripts/`, and `docs/`.
+- Moved root `docker-compose.yml` and `Dockerfile` into `infra/`.
+- Moved root `PROJECT_STATUS.md` and `INTERACTIVE_WINDOW.md` into `docs/`.
+
 ### What was built
 
 **PostgreSQL DB layer (complete)**
@@ -376,33 +425,6 @@ make down     → docker compose -f infra/docker-compose.yml down
 make db-init  → uv run scripts/create_tables.py
 make run      → uv run main.py
 make test     → uv run pytest
-```
-
-### Current folder structure
-```
-ai-event-agreegator/
-├── infra/
-│   ├── docker-compose.yml
-│   └── Dockerfile
-├── scripts/
-│   └── create_tables.py
-├── docs/
-│   ├── PROJECT_STATUS.md
-│   └── INTERACTIVE_WINDOW.md
-├── app/
-│   ├── db/
-│   │   ├── models.py
-│   │   ├── session.py
-│   │   └── repository.py
-│   ├── scrapers/
-│   │   ├── events/
-│   │   └── youtube/
-│   └── services/
-├── tests/
-├── main.py
-├── Makefile
-├── .env.example
-└── pyproject.toml
 ```
 
 ### What works
@@ -659,3 +681,288 @@ ai-event-agreegator/
 2. Wire up APScheduler for automated daily runs
 3. Build FastAPI API layer to serve digest data
 4. Wire dashboard to real API (replace mock data)
+
+---
+
+## 2026-03-12 — Project summary convention update + hierarchy refresh
+
+### Structure changes
+- None. This session only tightened the documentation convention around hierarchy maintenance.
+
+### What was built / changed
+- Updated the top `Convention` block: folder hierarchy/tree must be updated whenever session summaries are updated.
+- Added this appended session entry with an up-to-date hierarchy snapshot of the current repo.
+
+### What works
+- Documentation now explicitly enforces keeping project summary and hierarchy snapshot in sync.
+
+### Errors hit
+- None.
+
+### What's next
+1. Keep appending new entries at the bottom only, including hierarchy updates in each future summary update.
+2. Continue pending product work from the previous session backlog (scheduler, API layer, dashboard data wiring).
+
+---
+
+## 2026-03-12 — Pipeline monitoring foundation (v1) implemented
+
+### Structure changes
+- Added `app/monitoring/`.
+- Added `scripts/monitoring_report.py`.
+
+### What was built
+
+**`app/monitoring/`** (new package)
+- `logging_config.py` — `configure_logging()` sets console + `logs/pipeline.log` handlers via stdlib logging
+- `models.py` — new SQLAlchemy tables: `pipeline_runs`, `pipeline_stage_metrics`, `pipeline_errors` using shared Postgres enum `pipeline_status` (`running/success/partial/failed`)
+- `alerts.py` — `AlertHandler` protocol + `NoopAlertHandler`
+- `tracker.py` — `PipelineTracker.start()`, `finish()`, `abort()`, `record_error()`, `record_stage_metric()`
+- `stage.py` — `StageMonitor` context manager with `attempt()`, `succeed()`, `fail()` and no-op behavior when tracker is `None`
+- `report.py` — terminal report generator for recent runs, stage metrics, and error counts
+- `__init__.py` — exports public monitoring API
+
+**Pipeline + service wiring**
+- `main.py` now:
+  - configures logging at startup
+  - starts `PipelineTracker`
+  - wraps scrape stages in `StageMonitor("youtube_scrape")` and `StageMonitor("events_scrape")`
+  - passes `tracker` into service calls
+  - uses `try/except/finally` with `tracker.finish()` / `tracker.abort(exc)` and guaranteed `db.close()`
+- `app/services/process_digest.py` — added optional `tracker`; wraps digest loop in `StageMonitor("digest_videos")`; per-video failures call `stage.fail(..., item_id=video_id)`
+- `app/services/process_curator.py` — added optional `tracker`; wrapped in `StageMonitor("curator")`
+- `app/services/process_youtube_email.py` — added optional `tracker`; wrapped in `StageMonitor("youtube_email")`
+- `app/services/process_events_email.py` — added optional `tracker`; wrapped in `StageMonitor("events_email")`
+- `app/db/repository.py` — `save_events(..., tracker=None)` now includes `StageMonitor("events_enrichment")` for per-event summary generation failures
+
+**DB + tooling updates**
+- `app/db/models.py` now imports monitoring models at bottom:
+  - `from app.monitoring import models as _monitoring_models  # noqa`
+- `scripts/create_tables.py` now prints dynamic table names from `Base.metadata.tables`
+- `scripts/monitoring_report.py` (new) — CLI for monitoring report (`--limit` supported)
+- `Makefile` target added:
+  - `make monitoring-report` → `uv run scripts/monitoring_report.py`
+
+### What works
+- New monitoring tables are created via `scripts/create_tables.py`:
+  - `pipeline_runs`, `pipeline_stage_metrics`, `pipeline_errors`
+- Monitoring report CLI runs successfully:
+  - returns `No pipeline runs found.` on an empty monitoring dataset
+- Python compile check passed for updated/new modules:
+  - `.venv/bin/python -m compileall app scripts main.py`
+- `StageMonitor` no-tracker compatibility works (no-op behavior confirmed in a direct smoke check)
+
+### Errors hit
+- Running `uv run ...` inside sandbox failed due UV cache permissions (`/Users/jon/.cache/uv`) — resolved by running the check with escalation
+- Initial `scripts/monitoring_report.py` run failed with `UndefinedTable: pipeline_runs` because new tables were not created yet — resolved by running `scripts/create_tables.py` and re-running report
+
+### What's next
+1. Run `main.py` once end-to-end in your local environment to generate the first `pipeline_runs` row and stage/error metrics.
+2. Validate `logs/pipeline.log` output and confirm expected run status transitions (`success`/`partial`/`failed`).
+3. Add optional retention maintenance for `pipeline_errors` (manual SQL or scheduled cleanup later).
+4. Add a real alert implementation (e.g., Slack) by implementing `AlertHandler`.
+
+---
+
+## 2026-03-12 — Future feature tracking + repo-local agent instructions
+
+### Structure changes
+- Added `AGENTS.md`.
+- Added `docs/FUTURE_FEATURES.md`.
+
+### What was built / changed
+- Added `AGENTS.md` at repo root with repo-local instructions so any coding agent can consistently:
+  - update `docs/PROJECT_STATUS.md` after work sessions
+  - update `docs/FUTURE_FEATURES.md` whenever future work ideas come up
+- Added `docs/FUTURE_FEATURES.md` as an append-only future feature tracker with:
+  - a top `Current Backlog` section for quick agent handoff
+  - dated log entries at the bottom
+  - initial feature ideas seeded from project history and recent monitoring discussions
+- Added `logs/` to `.gitignore` because `logs/pipeline.log` is runtime output, not source.
+
+### What works
+- There is now a repo-local mechanism for future agents to follow, instead of relying only on a convention buried inside `docs/PROJECT_STATUS.md`.
+- Future feature ideas now have a dedicated place to live without mixing them into completed work history.
+
+### Errors hit
+- None this session.
+
+### What's next
+1. Keep `docs/FUTURE_FEATURES.md` current whenever new future work is mentioned in planning, implementation, review, or debugging.
+2. Continue using `docs/PROJECT_STATUS.md` only for completed work/session history.
+3. When a backlog item ships, mark it in `docs/FUTURE_FEATURES.md` and record the shipped work in `docs/PROJECT_STATUS.md`.
+
+---
+
+## 2026-03-12 — Project status hierarchy tracking refactored
+
+### Structure changes
+- None to repo paths. This session changed the documentation model only.
+
+### What was built / changed
+- Reworked `docs/PROJECT_STATUS.md` into:
+  - one top-level `Current Hierarchy` section
+  - one top-level `Path Lifecycle Ledger`
+  - one append-only `Session Log`
+- Removed repeated full-tree snapshots from historical session entries and replaced them with short `Structure changes` sections where needed.
+- Updated `AGENTS.md` so future agents maintain the canonical hierarchy and lifecycle ledger instead of pasting full trees into every session entry.
+
+### What works
+- `docs/PROJECT_STATUS.md` now has exactly one canonical hierarchy section near the top.
+- Major path create/remove/move history now has a dedicated ledger instead of being scattered across repeated snapshots.
+- Historical session notes remain in place while structure tracking is less noisy and easier to maintain.
+
+### Errors hit
+- None.
+
+### What's next
+1. Keep the top hierarchy current when structure changes.
+2. Update the lifecycle ledger whenever a major path is created, moved, renamed, or removed.
+3. Keep future session entries append-only and use `Structure changes` only when structure actually changes.
+
+---
+
+## 2026-03-12 — Future features doc now includes shipped capabilities
+
+### Structure changes
+- None. This session changed documentation content only.
+
+### What was built / changed
+- Updated `docs/FUTURE_FEATURES.md` to include a top-level `Implemented Features` section in addition to the existing `Current Backlog`.
+- Seeded the new implemented-features section with major capabilities already shipped, using this status log as the source of truth.
+- Updated `AGENTS.md` so future agents maintain both:
+  - shipped capabilities in `Implemented Features`
+  - upcoming work in `Current Backlog`
+
+### What works
+- `docs/FUTURE_FEATURES.md` now answers both:
+  - what the project already has
+  - what is still planned
+
+### Errors hit
+- None.
+
+### What's next
+1. Move backlog items into `Implemented Features` when they ship.
+2. Keep `docs/PROJECT_STATUS.md` as the detailed historical source and `docs/FUTURE_FEATURES.md` as the quick capability/backlog summary.
+
+---
+
+## 2026-03-12 — Monitoring query layer + analytics CLI
+
+### Structure changes
+- Added `app/monitoring/queries.py`.
+- Added `docs/MONITORING_QUERIES.md`.
+
+### What was built / changed
+- Added `app/monitoring/queries.py` as the reusable monitoring analytics layer with parameterized helpers for:
+  - recent runs
+  - overall health
+  - success and duration trends
+  - slowest runs
+  - stage performance and variance
+  - failure analysis
+  - throughput
+  - before/after comparison
+  - generic stage-grouped analytics such as AI workload and status distribution
+- Reworked `app/monitoring/report.py` to format human-readable analytics reports using the new query layer instead of embedding query logic directly.
+- Expanded `scripts/monitoring_report.py` into a multi-command CLI:
+  - `recent-runs`
+  - `health`
+  - `stage-performance`
+  - `failures`
+  - `throughput`
+  - `compare`
+- Added `docs/MONITORING_QUERIES.md` with:
+  - supported named queries
+  - SQL reference examples
+  - interpretation notes
+  - known caveats
+- Added `Monitoring Query Layer` to implemented capabilities and `Monitoring Telemetry Extension` to future backlog in `docs/FUTURE_FEATURES.md`.
+
+### What works
+- Query helpers compile and import successfully.
+- `scripts/monitoring_report.py --help` now exposes the analytics command families.
+- Stage grouping degrades safely to `unknown` for unseen future stage names.
+
+### Errors hit
+- None.
+
+### What's next
+1. Run the new monitoring commands against real monitoring data once pipeline runs exist.
+2. Add telemetry fields later for truthful cost/model/provider analytics rather than inferring cost from duration.
+3. Reuse this query layer in future API, dashboard, or MCP surfaces instead of duplicating SQL.
+
+---
+
+## 2026-03-12 — Makefile shortcuts for monitoring commands
+
+### Structure changes
+- None. This session changed developer workflow commands only.
+
+### What was built / changed
+- Expanded `Makefile` monitoring commands so common monitoring checks no longer require remembering the CLI subcommands.
+- Kept `make monitoring-report` as the default recent-runs view.
+- Added dedicated Make targets for:
+  - `monitoring-runs`
+  - `monitoring-health`
+  - `monitoring-stage-performance`
+  - `monitoring-failures`
+  - `monitoring-throughput`
+  - `monitoring-compare`
+- `monitoring-compare` now accepts `BEFORE_START`, `BEFORE_END`, `AFTER_START`, and `AFTER_END` variables so period comparison can be run from `make` without editing commands manually.
+
+### What works
+- Common monitoring views now have direct `make` aliases.
+- Period comparison can be launched through `make` with explicit date variables.
+
+### Errors hit
+- None.
+
+### What's next
+1. Use the new Make targets as the normal operator entrypoint for monitoring checks.
+2. Add a `help` target later if the Makefile grows enough that command discovery becomes a friction point.
+
+---
+
+## 2026-03-12 — Monitoring phases checklist + summary layer kickoff
+
+### Structure changes
+- Added `docs/MONITORING_PHASES.md`.
+- Added `app/monitoring/summary.py`.
+
+### What was built / changed
+- Added `docs/MONITORING_PHASES.md` as the monitoring roadmap checklist so future agents can continue phase work without reconstructing it from chat history.
+- Updated `AGENTS.md` so monitoring work now also requires keeping `docs/MONITORING_PHASES.md` current.
+- Started Phase 0 by adding `git_sha` and optional `config_version` attribution to `pipeline_runs`.
+- Updated `PipelineTracker.start()` to auto-capture the current git SHA and optional `PIPELINE_CONFIG_VERSION` from env.
+- Updated `scripts/create_tables.py` to add the new run-metadata columns to existing Postgres tables via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`.
+- Added normalized stage-efficiency analytics to `app/monitoring/queries.py`:
+  - `seconds_per_item`
+  - `items_per_minute`
+  - normalized before/after comparison
+- Expanded monitoring reports so stage-performance and compare outputs include normalized efficiency, not just raw duration.
+- Added `app/monitoring/summary.py` as the first deterministic monitoring summary layer:
+  - bottleneck detection
+  - regression detection
+  - instability warnings
+  - reliability warnings
+  - incomplete-observability warnings
+  - recent-error focus
+- Expanded the monitoring CLI with `summary --days N`.
+- Added `make monitoring-summary`.
+- Updated `docs/MONITORING_QUERIES.md` and `docs/FUTURE_FEATURES.md` to reflect the new operator surface and the next monitoring backlog.
+
+### What works
+- Recent-run reports now surface run attribution metadata.
+- Monitoring now supports normalized optimization analysis instead of raw duration only.
+- A deterministic summary layer can now tell the operator where to focus next without using an LLM.
+- The monitoring roadmap is now captured in a persistent checklist file rather than only in chat.
+
+### Errors hit
+- `.env.example` patch context mismatch due to file drift — resolved by reading the file and patching against the live contents.
+
+### What's next
+1. Implement ranking history persistence so score drift and ranking volatility become measurable.
+2. Add digest freshness/version tracking so stale summaries are visible in ranking analysis.
+3. Add batch/retry telemetry so batching and API optimizations can be measured honestly.

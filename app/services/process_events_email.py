@@ -6,13 +6,17 @@ import ssl
 from datetime import datetime, timezone, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import logging
 
 from sqlalchemy.orm import Session
 
 from app.db.models import Event
 from app.email.render import render_events_email
+from app.monitoring import StageMonitor
+from app.monitoring.tracker import PipelineTracker
 from agent.events_email_agent import run as generate_email
 
+logger = logging.getLogger(__name__)
 
 def _get_upcoming_events(db: Session) -> list[Event]:
     now = datetime.now(timezone.utc)
@@ -44,40 +48,46 @@ def _send(subject: str, html: str) -> None:
         server.sendmail(sender, recipient, msg.as_string())
 
 
-def process_events_email(db: Session) -> None:
-    print("=== Events Email Digest ===")
+def process_events_email(db: Session, tracker: PipelineTracker | None = None) -> None:
+    logger.info("=== Events Email Digest ===")
 
-    events = _get_upcoming_events(db)
-    if not events:
-        print("  No events in the next 14 days. Skipping email.\n")
-        return
+    with StageMonitor(tracker, "events_email") as stage:
+        events = _get_upcoming_events(db)
+        if not events:
+            logger.info("  No events in the next 14 days. Skipping email.")
+            return
 
-    print(f"  Found {len(events)} event(s) for the next 14 days...\n")
+        logger.info("  Found %s event(s) for the next 14 days...", len(events))
+        stage.attempt()
 
-    try:
-        email_result = generate_email(events)
-    except Exception as e:
-        print(f"  Email generation error: {e}\n")
-        return
+        try:
+            email_result = generate_email(events)
+        except Exception as exc:
+            stage.fail(exc)
+            logger.exception("Events email generation failed")
+            return
 
-    # Build event_key -> first URL map from DB records
-    event_url_map = {
-        f"{e.title}||{e.start_time.isoformat()}": e.urls[0] if e.urls else ""
-        for e in events
-    }
+        # Build event_key -> first URL map from DB records
+        event_url_map = {
+            f"{e.title}||{e.start_time.isoformat()}": e.urls[0] if e.urls else ""
+            for e in events
+        }
 
-    # Pin URLs from DB — never trust the LLM to pass URLs through unchanged
-    for section in email_result.events:
-        db_url = event_url_map.get(section.event_key, "")
-        if db_url:
-            section.url = db_url
+        # Pin URLs from DB — never trust the LLM to pass URLs through unchanged
+        for section in email_result.events:
+            db_url = event_url_map.get(section.event_key, "")
+            if db_url:
+                section.url = db_url
 
-    html = render_events_email(email_result)
+        html = render_events_email(email_result)
+        logger.info("  Subject: %s", email_result.subject)
 
-    print(f"  Subject: {email_result.subject}\n")
+        try:
+            _send(email_result.subject, html)
+        except Exception as exc:
+            stage.fail(exc)
+            logger.exception("Events email send failed")
+            return
 
-    try:
-        _send(email_result.subject, html)
-        print("  Email sent.\n")
-    except Exception as e:
-        print(f"  Send error: {e}\n")
+        stage.succeed()
+        logger.info("  Email sent.")

@@ -1,8 +1,13 @@
 from datetime import datetime, timezone, timedelta
+import logging
 from sqlalchemy.orm import Session
 from app.db.models import YouTubeVideo, Event, Digest
 from app.scrapers.youtube.scraper import Video
 from app.scrapers.events.scraper import Event as ScrapedEvent
+from app.monitoring import StageMonitor
+from app.monitoring.tracker import PipelineTracker
+
+logger = logging.getLogger(__name__)
 
 
 def save_videos(videos: list[Video], db: Session) -> None:
@@ -21,42 +26,55 @@ def save_videos(videos: list[Video], db: Session) -> None:
     db.commit()
 
 
-def save_events(events: list[ScrapedEvent], db: Session) -> None:
+def save_events(
+    events: list[ScrapedEvent],
+    db: Session,
+    tracker: PipelineTracker | None = None,
+) -> None:
     """Upsert scraped events. Generates a summary for new events only."""
     from agent import event_agent
 
-    for e in events:
-        existing = db.get(Event, (e.title, e.start_time))
-        summary = existing.summary if existing and existing.summary else None
-        relevance_score = existing.relevance_score if existing and existing.relevance_score is not None else None
+    with StageMonitor(tracker, "events_enrichment") as stage:
+        for e in events:
+            existing = db.get(Event, (e.title, e.start_time))
+            summary = existing.summary if existing and existing.summary else None
+            relevance_score = (
+                existing.relevance_score
+                if existing and existing.relevance_score is not None
+                else None
+            )
 
-        if summary is None:
-            try:
-                temp = Event(
-                    title=e.title,
-                    start_time=e.start_time,
-                    end_time=e.end_time,
-                    location=e.location,
-                    urls=e.urls,
-                    sources=e.sources,
-                )
-                result = event_agent.run(temp)
-                summary = result.summary
-                relevance_score = result.relevance_score
-            except Exception as ex:
-                print(f"    [summary error] {e.title}: {ex}")
+            if summary is None:
+                stage.attempt()
+                try:
+                    temp = Event(
+                        title=e.title,
+                        start_time=e.start_time,
+                        end_time=e.end_time,
+                        location=e.location,
+                        urls=e.urls,
+                        sources=e.sources,
+                    )
+                    result = event_agent.run(temp)
+                    summary = result.summary
+                    relevance_score = result.relevance_score
+                    stage.succeed()
+                except Exception as ex:
+                    item_id = f"{e.title}||{e.start_time.isoformat()}"
+                    stage.fail(ex, item_id=item_id)
+                    logger.exception("Event enrichment failed for %s", e.title)
 
-        row = Event(
-            title=e.title,
-            start_time=e.start_time,
-            end_time=e.end_time,
-            location=e.location,
-            urls=e.urls,
-            sources=e.sources,
-            summary=summary,
-            relevance_score=relevance_score,
-        )
-        db.merge(row)
+            row = Event(
+                title=e.title,
+                start_time=e.start_time,
+                end_time=e.end_time,
+                location=e.location,
+                urls=e.urls,
+                sources=e.sources,
+                summary=summary,
+                relevance_score=relevance_score,
+            )
+            db.merge(row)
     db.commit()
 
 

@@ -46,3 +46,6 @@ class Digest(Base):
     tools_concepts = Column(Text, nullable=True)
     source = Column(String, nullable=False)
     uploaded_at = Column(DateTime(timezone=True), nullable=False)
+
+
+from app.monitoring import models as _monitoring_models  # noqa: E402,F401

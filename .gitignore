@@ -11,3 +11,9 @@ wheels/
 
 # Environment variables
 .env
+
+# Local runtime output
+logs/
+
+# Local Claude tooling state
+.claude/
