@@ -1,0 +1,3 @@
+from app.dashboard.render import render_dashboard
+
+__all__ = ["render_dashboard"]

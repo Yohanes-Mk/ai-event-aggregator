@@ -14,6 +14,7 @@ wheels/
 
 # Local runtime output
 logs/
+artifacts/
 
 # Local Claude tooling state
 .claude/

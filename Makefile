@@ -1,4 +1,4 @@
-.PHONY: help up down db-init run test \
+.PHONY: help up down db-init run dashboard demo test \
 	monitoring-report monitoring-runs monitoring-health \
 	monitoring-stage-performance monitoring-failures \
 	monitoring-throughput monitoring-batch-telemetry monitoring-summary \
@@ -11,6 +11,8 @@ help:
 	@printf "  down                      Stop Postgres\n"
 	@printf "  db-init                   Create/update tables\n"
 	@printf "  run                       Run the full pipeline\n"
+	@printf "  dashboard                 Render dashboard from current DB data\n"
+	@printf "  demo                      Launch the Streamlit demo app\n"
 	@printf "  test                      Run tests\n"
 	@printf "  monitoring-report         Recent runs\n"
 	@printf "  monitoring-health         Health summary\n"
@@ -34,6 +36,12 @@ db-init:
 
 run: db-init
 	uv run main.py
+
+dashboard: db-init
+	uv run python -c "from app.db.session import SessionLocal; from app.services.process_dashboard import process_dashboard; db = SessionLocal(); process_dashboard(db); db.close()"
+
+demo: db-init
+	uv run streamlit run scripts/demo_app.py
 
 test:
 	uv run pytest

@@ -29,6 +29,8 @@ This file tracks future features, enhancements, and follow-up ideas that come up
 | Digest Freshness and Versioning | 2026-03-12 | Digests now track generation/version/freshness metadata for stale-content analysis. | Monitoring phases session |
 | Batch/Retry Telemetry | 2026-03-12 | Stage metrics now record batch, retry, backoff, concurrency, model, and prompt telemetry for API-heavy stages. | Monitoring completion session |
 | YouTube Shorts Classification Cache | 2026-03-12 | Shorts checks now use a persisted classification cache plus scrape telemetry for cache hits, network calls, and filtered Shorts. | Shorts optimization session |
+| Live Dashboard Data Wiring | 2026-03-12 | Dashboard HTML now renders from real DB data and refreshes on each pipeline run via a generated static artifact. | Dashboard data session |
+| Streamlit Demo Console | 2026-03-12 | Local demo shell for DB stats, ranked content, dashboard preview, and on-demand digest actions. | Demo phases session |
 
 ## Current Backlog
 
@@ -37,12 +39,13 @@ This file tracks future features, enhancements, and follow-up ideas that come up
 | Slack Alert Handler | Proposed | Send pipeline completion and error alerts through the monitoring `AlertHandler` interface without changing pipeline code. | Monitoring planning + implementation |
 | APScheduler Pipeline Runner | Proposed | Run the full pipeline on a schedule instead of only manual `main.py` execution. | Repeated `What's next` backlog |
 | FastAPI Digest API | Proposed | Serve digests, events, monitoring data, and dashboard content from a real API layer. | Repeated `What's next` backlog |
-| Live Dashboard Data Wiring | Proposed | Replace dashboard mock data with API-backed content. | Dashboard session backlog |
 | Monitoring HTML Report | Proposed | Add a richer visual run report using monitoring data and existing templates. | Monitoring evolution path |
 | Metrics Export / Prometheus Adapter | Proposed | Export stage timing and failure data to external metrics systems without changing stage tracking. | Monitoring evolution path |
 | Monitoring Telemetry Extension | Proposed | Add provider/model/token/cost telemetry so future analytics can answer billing and model-usage questions honestly. | Monitoring query layer next track |
 | Pipeline Error Retention Automation | Proposed | Automate cleanup of old `pipeline_errors` rows instead of relying on manual SQL. | Monitoring implementation follow-up |
 | Slack Digest Delivery | Proposed | Deliver curated content through Slack in addition to email. | Earlier notification backlog |
+| Structured Digest Tool Tags | Proposed | Store `tools_concepts` in a structured format so dashboard/email tags stay clean instead of being split from a raw text blob. | Dashboard data session |
+| Demo Profile Override | Proposed | Allow temporary profile override in the demo UI only when curator personalization is wired to accept runtime user context cleanly. | Demo phases session |
 | Interactive Channel Selector Wiring | Proposed | Wire `app/scrapers/youtube/selector.py` into the main workflow when interactive channel picking is needed. | 2026-03-11 selector session |
 | YouTube Email Channel Metadata Hardening | Proposed | Fix incomplete channel/source metadata so email rendering never shows unknown channel values. | 2026-03-11 email session |
 
@@ -130,3 +133,27 @@ This file tracks future features, enhancements, and follow-up ideas that come up
 ### Why this changed
 - Monitoring now records operational optimization telemetry at the stage level.
 - The remaining telemetry work is the higher-cost, more specialized provider/token/cost layer rather than basic retry/batch observability.
+
+---
+
+## 2026-03-12 — Dashboard moved from mock data to generated real data
+
+### What changed
+- Moved `Live Dashboard Data Wiring` into `Implemented Features`.
+- Added `Structured Digest Tool Tags` to `Current Backlog`.
+
+### Why this changed
+- The dashboard now renders from live DB-backed rankings and event rows on every pipeline run, so it is no longer a mock-only artifact.
+- The new real-data render exposed a content-shape issue: `tools_concepts` is still a raw text blob, which creates noisy tags in the dashboard until it becomes structured data.
+
+---
+
+## 2026-03-12 — Streamlit demo console shipped
+
+### What changed
+- Added `Streamlit Demo Console` to `Implemented Features`.
+- Added `Demo Profile Override` to `Current Backlog`.
+
+### Why this changed
+- The repo now has a demo-first local app that surfaces real DB data, previews the generated dashboard, and can trigger the existing dashboard/email flows on demand.
+- Personalized profile editing is still future work because the current curator path is not yet cleanly parameterized for runtime user-profile overrides from the UI.

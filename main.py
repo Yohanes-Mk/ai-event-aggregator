@@ -14,6 +14,7 @@ from app.monitoring import PipelineTracker, StageMonitor, configure_logging
 from app.scrapers.events import EventScraper
 from app.scrapers.youtube import CHANNELS, YouTubeScraper
 from app.services.process_curator import process_curator
+from app.services.process_dashboard import process_dashboard
 from app.services.process_digest import process_digest
 from app.services.process_events_email import process_events_email
 from app.services.process_youtube_email import process_youtube_email
@@ -83,6 +84,7 @@ def main() -> None:
         process_curator(db, tracker=tracker)
         process_youtube_email(db, tracker=tracker)
         process_events_email(db, tracker=tracker)
+        process_dashboard(db, tracker=tracker)
 
         tracker.finish()
     except Exception as exc:

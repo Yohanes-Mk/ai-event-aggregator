@@ -22,9 +22,9 @@ from agent import youtube_email_agent
 logger = logging.getLogger(__name__)
 
 
-def _send(subject: str, html: str) -> None:
+def _send(subject: str, html: str, recipient: str | None = None) -> None:
     sender = os.environ["GMAIL_SENDER"]
-    recipient = os.environ["GMAIL_RECIPIENT"]
+    recipient = recipient or os.environ["GMAIL_RECIPIENT"]
     app_password = os.environ["GMAIL_APP_PASSWORD"]
 
     msg = MIMEMultipart("alternative")
@@ -41,14 +41,19 @@ def _send(subject: str, html: str) -> None:
         server.sendmail(sender, recipient, msg.as_string())
 
 
-def process_youtube_email(db: Session, tracker: PipelineTracker | None = None) -> None:
+def process_youtube_email(
+    db: Session,
+    tracker: PipelineTracker | None = None,
+    *,
+    recipient: str | None = None,
+) -> bool:
     logger.info("=== YouTube Email Digest ===")
 
     with StageMonitor(tracker, "youtube_email") as stage:
         digests = repository.get_recent_digests(db, hours=168)  # last 7 days
         if not digests:
             logger.info("  No digests in the last 7 days. Skipping email.")
-            return
+            return False
 
         logger.info("  Preparing %s item(s) for email...", len(digests))
         stage.attempt()
@@ -114,7 +119,7 @@ def process_youtube_email(db: Session, tracker: PipelineTracker | None = None) -
             except Exception as exc:
                 stage.fail(exc)
                 logger.exception("Curator ranking failed for youtube email")
-                return
+                return False
 
             seen: set[str] = set()
             for article in curator_result.ranked_articles:
@@ -125,7 +130,7 @@ def process_youtube_email(db: Session, tracker: PipelineTracker | None = None) -
 
         if not top_10:
             logger.info("  No ranked YouTube items available for email.")
-            return
+            return False
 
         try:
             email_result = run_with_retries(
@@ -137,7 +142,7 @@ def process_youtube_email(db: Session, tracker: PipelineTracker | None = None) -
         except Exception as exc:
             stage.fail(exc)
             logger.exception("YouTube email generation failed")
-            return
+            return False
 
         # Pin URLs from DB — never trust the LLM to pass URLs through unchanged
         for section in email_result.articles:
@@ -149,14 +154,15 @@ def process_youtube_email(db: Session, tracker: PipelineTracker | None = None) -
         logger.info("  Subject: %s", email_result.subject)
 
         try:
-            _send(email_result.subject, html)
+            _send(email_result.subject, html, recipient=recipient)
         except Exception as exc:
             stage.fail(exc)
             logger.exception("YouTube email send failed")
-            return
+            return False
 
         stage.succeed()
         logger.info("  Email sent.")
+        return True
 
 
 def _record_retry(stage: StageMonitor) -> None:

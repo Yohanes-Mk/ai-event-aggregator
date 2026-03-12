@@ -22,6 +22,7 @@ STAGE_GROUPS = {
     "curator": "ranking",
     "youtube_email": "delivery",
     "events_email": "delivery",
+    "dashboard_render": "delivery",
 }
 
 

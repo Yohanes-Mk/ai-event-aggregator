@@ -25,6 +25,9 @@ ai-event-agreegator/
 │   ├── youtube_agent.py
 │   └── youtube_email_agent.py
 ├── app/
+│   ├── dashboard/
+│   │   ├── __init__.py
+│   │   └── render.py
 │   ├── db/
 │   │   ├── __init__.py
 │   │   ├── models.py
@@ -59,11 +62,13 @@ ai-event-agreegator/
 │   └── services/
 │       ├── __init__.py
 │       ├── process_curator.py
+│       ├── process_dashboard.py
 │       ├── process_digest.py
 │       ├── process_events_email.py
 │       ├── process_youtube_email.py
 │       └── retry_utils.py
 ├── docs/
+│   ├── DEMO_PHASES.md
 │   ├── FUTURE_FEATURES.md
 │   ├── INTERACTIVE_WINDOW.md
 │   ├── MONITORING_PHASES.md
@@ -75,6 +80,7 @@ ai-event-agreegator/
 │   └── docker-compose.yml
 ├── scripts/
 │   ├── create_tables.py
+│   ├── demo_app.py
 │   ├── get_channel_id.py
 │   └── monitoring_report.py
 ├── templates/
@@ -83,6 +89,8 @@ ai-event-agreegator/
 │   ├── __init__.py
 │   ├── test_event_scraper.py
 │   └── test_youtube_scraper.py
+├── .streamlit/
+│   └── config.toml
 ├── .env.example
 ├── .gitignore
 ├── .python-version
@@ -103,6 +111,7 @@ Major paths only. Use this ledger for creates, removes, moves, and renames that 
 |---|---|---|---|---|
 | `agent/` | dir | 2026-03-10 |  | Initial project scaffold. |
 | `app/` | dir | 2026-03-10 |  | Core application package. |
+| `app/dashboard/` | dir | 2026-03-12 |  | Static dashboard rendering from real DB data. |
 | `app/db/` | dir | 2026-03-10 |  | Scaffolded initially; DB models and repository added later the same day. |
 | `app/models/` | dir | 2026-03-10 |  | Shared app-level models package; currently minimal. |
 | `app/scrapers/events/` | dir | 2026-03-10 |  | Event scraping added in session 2. |
@@ -110,8 +119,10 @@ Major paths only. Use this ledger for creates, removes, moves, and renames that 
 | `app/monitoring/` | dir | 2026-03-12 |  | Pipeline monitoring foundation v1. |
 | `app/monitoring/queries.py` | file | 2026-03-12 |  | Reusable monitoring analytics layer. |
 | `app/monitoring/summary.py` | file | 2026-03-12 |  | Rule-based monitoring focus-area summary layer. |
+| `app/services/process_dashboard.py` | file | 2026-03-12 |  | Generates the real-data dashboard artifact from DB state after each pipeline run. |
 | `app/services/retry_utils.py` | file | 2026-03-12 |  | Shared retry helper used by API-heavy stages for retry/backoff telemetry. |
 | `docs/` | dir | 2026-03-10 |  | Introduced during project cleanup; houses project docs. |
+| `docs/DEMO_PHASES.md` | file | 2026-03-12 |  | Demo roadmap and implementation checklist. |
 | `docs/FUTURE_FEATURES.md` | file | 2026-03-12 |  | Append-only future feature tracker. |
 | `docs/INTERACTIVE_WINDOW.md` | file | 2026-03-10 |  | Created at repo root, moved into `docs/` during cleanup. |
 | `docs/MONITORING_PHASES.md` | file | 2026-03-12 |  | Monitoring roadmap and implementation checklist. |
@@ -120,9 +131,12 @@ Major paths only. Use this ledger for creates, removes, moves, and renames that 
 | `docs/user_context.md` | file | 2026-03-11 |  | Curator personalization context. |
 | `infra/` | dir | 2026-03-10 |  | Infrastructure files moved here during cleanup. |
 | `scripts/` | dir | 2026-03-10 |  | Utility and DB bootstrap scripts. |
+| `scripts/demo_app.py` | file | 2026-03-12 |  | Streamlit demo console over real DB and service flows. |
 | `scripts/monitoring_report.py` | file | 2026-03-12 |  | CLI report for pipeline monitoring. |
 | `templates/` | dir | 2026-03-11 |  | Dashboard HTML assets. |
 | `tests/` | dir | 2026-03-10 |  | Integration tests. |
+| `.streamlit/` | dir | 2026-03-12 |  | Local Streamlit theme configuration for the demo console. |
+| `.streamlit/config.toml` | file | 2026-03-12 |  | Streamlit theme settings for the demo app. |
 | `AGENTS.md` | file | 2026-03-12 |  | Repo-local agent workflow rules. |
 | `Makefile` | file | 2026-03-10 |  | Added during project cleanup. |
 | `main.py` | file | 2026-03-10 |  | Root pipeline entrypoint. |
@@ -1136,3 +1150,171 @@ make test     → uv run pytest
 1. Run the pipeline again so `youtube_short_checks` telemetry is recorded on a fresh run.
 2. Compare the next run against the current baseline to confirm Shorts cache hits replace repeated network calls.
 3. If Shorts checks are still a major scrape bottleneck after the cache warms up, add bounded concurrency for uncached classifications.
+
+---
+
+## 2026-03-12 — Real dashboard rendering wired to DB data
+
+### Structure changes
+- Added `app/dashboard/`.
+- Added `app/services/process_dashboard.py`.
+
+### What was built / changed
+- Added `app/dashboard/render.py` to treat `templates/dashboard.html` as a reusable source template and inject live JSON payload data at render time.
+- Reworked `templates/dashboard.html` so it no longer depends on hardcoded mock arrays:
+  - reads injected `window.__STACK_DATA__`
+  - renders empty states if no videos/events exist yet
+  - uses generated timestamp and recipient name from injected payload
+- Added `process_dashboard(db, tracker=None)` which:
+  - loads the latest curator run rankings for video cards
+  - joins digest + YouTube metadata for links, summaries, and channel info
+  - loads upcoming events from the DB for the events grid
+  - writes a generated static artifact to `artifacts/dashboard.html`
+- Wired `process_dashboard()` into `main.py`, so each full pipeline run now refreshes the dashboard artifact automatically.
+- Added `make dashboard` for regenerating the dashboard from current DB data without running the whole pipeline.
+- Added `artifacts/` to `.gitignore` so generated HTML is treated as runtime output, not source.
+
+### What works
+- The dashboard now renders from real database data instead of static mock content.
+- Rendering works without external API calls; it only reads the local DB state and writes `artifacts/dashboard.html`.
+- The generated artifact currently contains:
+  - 10 ranked videos from the latest curator run
+  - 75 upcoming events from the next 14 days
+- Each future `make run` now refreshes the dashboard along with the rest of the pipeline.
+- `make dashboard` is the intended developer shortcut, but direct `uv run ...` invocation remains the fallback when `make` hits local `uv` cache permission issues in restricted execution environments.
+
+### Errors hit
+- `make dashboard` hit the same local `uv` cache permission issue seen earlier in sandboxed execution. Running the underlying `uv run ...` commands directly succeeded.
+- The generated dashboard revealed a content-quality issue rather than a render bug: `tools_concepts` is still stored as a raw text blob, so simple comma-splitting produces noisy tags for some videos.
+
+### What's next
+1. Tighten `tools_concepts` storage/rendering so dashboard tags are cleaner and more structured.
+2. Add a small dashboard stage to monitoring if dashboard generation time/quality becomes operationally important.
+3. Reuse the same payload/query logic later when the FastAPI layer replaces the static artifact with a live endpoint.
+
+---
+
+## 2026-03-12 — Streamlit demo console + demo phases
+
+### Structure changes
+- Added `docs/DEMO_PHASES.md`.
+- Added `scripts/demo_app.py`.
+
+### What was built / changed
+- Added `docs/DEMO_PHASES.md` as the durable demo roadmap/checklist, similar to the monitoring phases file.
+- Updated `AGENTS.md` so future agents now also keep `docs/DEMO_PHASES.md` current when demo/UI work advances.
+- Added `streamlit` to the project dependencies.
+- Added `scripts/demo_app.py` as a real demo shell over the existing repo:
+  - real DB metrics
+  - latest ranked videos from the latest curator run
+  - upcoming events from the DB
+  - recent digests
+  - inline dashboard preview from `artifacts/dashboard.html`
+  - live action buttons for:
+    - dashboard render
+    - YouTube digest send
+    - events digest send
+- Updated `process_youtube_email()` and `process_events_email()` so they now support a recipient override and return success/failure booleans, which the demo app uses for honest action feedback.
+- Updated `process_dashboard()` to return the artifact path on success so the demo app can confirm output and preview it.
+- Added `make demo`.
+- Fixed `make dashboard` to use `uv run python -c ...` instead of the invalid `uv run -c ...` form.
+
+### What works
+- `scripts/demo_app.py` imports successfully under the project environment.
+- The demo app reuses the real pipeline services instead of duplicating ranking/email/dashboard logic in the UI layer.
+- Dashboard rendering was verified through the same service path the demo app uses.
+- `make -n demo` now resolves to `uv run streamlit run scripts/demo_app.py`.
+
+### Errors hit
+- A syntax error in `app/services/process_youtube_email.py` surfaced during compile verification after the new demo work started. The issue was a malformed `try/except` indentation block in the curator-fallback path; fixing that restored the service and the demo app import path.
+
+### What's next
+1. Run `make demo` locally and verify the Streamlit UI flow end-to-end.
+2. Verify the demo app can send both digest emails successfully with your current env vars.
+3. Decide whether to add demo-only profile override next or keep the demo focused on the current real personalization path.
+
+---
+
+## 2026-03-12 — Demo app layout rebuild + env-backed email readiness
+
+### Structure changes
+- None. This session rebuilt the existing demo UI and startup path but did not add new repo paths.
+
+### What was built / changed
+- Recreated `scripts/demo_app.py` after an interrupted edit left the file missing.
+- Reworked the Streamlit page order so it now leads with:
+  1. dashboard preview
+  2. demo actions
+  3. metrics
+  4. ranked/supporting DB data
+- Replaced the earlier plain layout with a more intentional visual treatment:
+  - editorial hero block
+  - card-based sections
+  - stronger spacing and typography
+  - status chips for env readiness
+- Updated the demo app startup path to call `load_dotenv()` so the Streamlit process now reads the same local `.env` file as `main.py`.
+- Added visible env-readiness checks for:
+  - `OPENAI_API_KEY`
+  - `GMAIL_SENDER`
+  - `GMAIL_APP_PASSWORD`
+  - `GMAIL_RECIPIENT`
+- Tightened the send-action feedback so the UI now blocks obviously invalid email attempts earlier and points the operator to terminal logs when the underlying service fails.
+- Escaped DB-backed strings inside the custom HTML blocks so unusual titles/summaries do not break the Streamlit page markup.
+
+### What works
+- `scripts/demo_app.py` compiles and imports successfully again.
+- The demo app now uses the same local env-loading path as the main pipeline, which addresses the most likely cause of the earlier Streamlit-only email failures.
+- The dashboard preview is now the top visual element on the page, matching the intended demo flow.
+- The action area now surfaces config readiness before the operator tries to send email.
+
+### Errors hit
+- The earlier demo app file was accidentally removed during a rewrite and had to be restored.
+- The previous Streamlit build likely failed email sends because it did not load `.env`, unlike `main.py`; this session corrected that startup mismatch.
+
+### What's next
+1. Run `make demo` and retry both email actions from the rebuilt UI.
+2. If email still fails, inspect the terminal logs now that the app shares the same env-loading path as `main.py`.
+3. If the rebuilt layout is directionally right, do a final visual polish pass focused only on demo-day presentation rather than feature expansion.
+
+---
+
+## 2026-03-12 — Streamlit theme + native dashboard-style redesign
+
+### Structure changes
+- Added `.streamlit/config.toml`.
+
+### What was built / changed
+- Added `.streamlit/config.toml` so the demo app now has a project-local Streamlit theme instead of depending only on ad hoc CSS.
+- Reworked `scripts/demo_app.py` again to follow a more Streamlit-native dashboard pattern:
+  - lighter CSS
+  - native bordered containers
+  - themed `st.metric` cards
+  - tabs for supporting records
+  - pills for channel/tag presentation
+  - tighter sidebar sections
+- Kept the user-requested order:
+  1. dashboard preview
+  2. demo actions
+  3. metrics
+  4. ranked/supporting data
+- Replaced the earlier over-styled layout with a cleaner presentation better aligned with Streamlit’s strengths:
+  - hero + status rail
+  - dashboard preview container
+  - action panel with tooltips
+  - sidebar control/context rail
+- Added more widget-level `help=` text in the demo action area so the UI explains itself without extra clutter.
+
+### What works
+- `scripts/demo_app.py` compiles and imports successfully after the redesign.
+- Verified the installed Streamlit version exposes the UI primitives used in the redesign:
+  - `st.pills`
+  - `st.link_button`
+- The demo shell now uses both a project theme file and scoped CSS instead of trying to force the entire experience through one custom HTML layer.
+
+### Errors hit
+- A quick compatibility probe initially failed because this machine does not expose bare `python` on `PATH`; rerunning through `uv run python` resolved it.
+
+### What's next
+1. Run `make demo` and validate the visual direction in the browser, not just by import/compile checks.
+2. If needed, do one more focused pass on spacing/typography only, without changing the demo flow again.
+3. If the visuals are now stable, move to demo-day operator polish rather than more structural UI changes.

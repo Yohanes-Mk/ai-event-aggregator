@@ -31,9 +31,9 @@ def _get_upcoming_events(db: Session) -> list[Event]:
     )
 
 
-def _send(subject: str, html: str) -> None:
+def _send(subject: str, html: str, recipient: str | None = None) -> None:
     sender = os.environ["GMAIL_SENDER"]
-    recipient = os.environ["GMAIL_RECIPIENT"]
+    recipient = recipient or os.environ["GMAIL_RECIPIENT"]
     app_password = os.environ["GMAIL_APP_PASSWORD"]
 
     msg = MIMEMultipart("alternative")
@@ -50,14 +50,19 @@ def _send(subject: str, html: str) -> None:
         server.sendmail(sender, recipient, msg.as_string())
 
 
-def process_events_email(db: Session, tracker: PipelineTracker | None = None) -> None:
+def process_events_email(
+    db: Session,
+    tracker: PipelineTracker | None = None,
+    *,
+    recipient: str | None = None,
+) -> bool:
     logger.info("=== Events Email Digest ===")
 
     with StageMonitor(tracker, "events_email") as stage:
         events = _get_upcoming_events(db)
         if not events:
             logger.info("  No events in the next 14 days. Skipping email.")
-            return
+            return False
 
         logger.info("  Found %s event(s) for the next 14 days...", len(events))
         stage.attempt()
@@ -78,7 +83,7 @@ def process_events_email(db: Session, tracker: PipelineTracker | None = None) ->
         except Exception as exc:
             stage.fail(exc)
             logger.exception("Events email generation failed")
-            return
+            return False
 
         # Build event_key -> first URL map from DB records
         event_url_map = {
@@ -96,14 +101,15 @@ def process_events_email(db: Session, tracker: PipelineTracker | None = None) ->
         logger.info("  Subject: %s", email_result.subject)
 
         try:
-            _send(email_result.subject, html)
+            _send(email_result.subject, html, recipient=recipient)
         except Exception as exc:
             stage.fail(exc)
             logger.exception("Events email send failed")
-            return
+            return False
 
         stage.succeed()
         logger.info("  Email sent.")
+        return True
 
 
 def _record_retry(stage: StageMonitor) -> None:

@@ -26,3 +26,7 @@ These repo-local instructions apply to any coding agent working in this project.
 - Update `docs/MONITORING_PHASES.md` whenever monitoring/analytics work advances.
 - Keep completed checklist items accurate and add dated notes when a phase is partially implemented, deferred, or split.
 - If monitoring work creates a new future feature or follow-up, also update `docs/FUTURE_FEATURES.md`.
+
+## Demo roadmap
+- Update `docs/DEMO_PHASES.md` whenever demo/UI work advances.
+- Keep completed checklist items accurate and add dated notes when demo scope changes, phases are partially implemented, or tradeoffs are decided.
