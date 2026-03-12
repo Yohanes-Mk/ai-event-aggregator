@@ -7,19 +7,19 @@ from pydantic import BaseModel
 from app.db.models import Event
 
 
-class EventDigestResult(BaseModel):
-    title: str
+class EventSummaryResult(BaseModel):
     summary: str
-    relevance_score: int  # 0-100
+    relevance_score: int  # 0-100, how relevant for an AI/software engineer
 
 
 _SYSTEM_PROMPT = (
-    "You are a tech event filter. Decide if this event matters "
-    "to an AI engineer building applied systems. Why should they attend?"
+    "You are a tech event curator. Write a 1-2 sentence summary of this event "
+    "for an AI/software engineer deciding whether to attend. Be specific and concise. "
+    "Also rate relevance 0-100 for an AI engineer building applied systems."
 )
 
 
-def run(event: Event) -> EventDigestResult:
+def run(event: Event) -> EventSummaryResult:
     client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
     urls_str = ", ".join(event.urls) if event.urls else "N/A"
@@ -41,7 +41,7 @@ def run(event: Event) -> EventDigestResult:
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
         ],
-        response_format=EventDigestResult,
+        response_format=EventSummaryResult,
         temperature=0.7,
     )
     return response.choices[0].message.parsed

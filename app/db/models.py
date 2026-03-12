@@ -30,6 +30,8 @@ class Event(Base):
     location = Column(String, nullable=True)
     urls = Column(ARRAY(Text), nullable=False, default=list)
     sources = Column(ARRAY(Text), nullable=False, default=list)
+    summary = Column(Text, nullable=True)
+    relevance_score = Column(Integer, nullable=True)  # 0-100, AI-rated for AI engineers
 
 
 class Digest(Base):
@@ -41,7 +43,6 @@ class Digest(Base):
     url = Column(String, nullable=True)
     title = Column(String, nullable=False)
     summary = Column(Text, nullable=False)
-    tools_concepts = Column(Text, nullable=True)   # YouTube only
-    relevance_score = Column(Integer, nullable=True)  # Event only, 0-100
+    tools_concepts = Column(Text, nullable=True)
     source = Column(String, nullable=False)
-    created_at = Column(DateTime(timezone=True), nullable=False)
+    uploaded_at = Column(DateTime(timezone=True), nullable=False)

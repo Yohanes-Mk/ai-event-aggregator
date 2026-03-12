@@ -62,8 +62,13 @@ class YouTubeScraper:
         except Exception:
             return False
 
-    def fetch_latest_videos(self, within_days: int = 14) -> list[Video]:
-        """Fetch recent videos from the channel via its RSS feed, excluding Shorts."""
+    def fetch_latest_videos(
+        self, within_days: int = 14, skip_ids: set[str] | None = None
+    ) -> list[Video]:
+        """Fetch recent videos from the channel via its RSS feed, excluding Shorts.
+
+        skip_ids: video_ids already in the DB — skips Shorts check + avoids duplicate work.
+        """
         url = RSS_BASE.format(channel_id=self.channel_id)
         feed = feedparser.parse(url)
 
@@ -73,6 +78,8 @@ class YouTubeScraper:
         for entry in feed.entries:
             published_at = datetime(*entry.published_parsed[:6], tzinfo=timezone.utc)
             if published_at < cutoff:
+                continue
+            if skip_ids and entry.yt_videoid in skip_ids:
                 continue
             if self._is_short(entry.yt_videoid):
                 continue
@@ -116,10 +123,13 @@ class YouTubeScraper:
         return video.model_copy(update={"transcript": transcript})
 
     def scrape(
-        self, within_days: int = 14, with_transcripts: bool = True
+        self,
+        within_days: int = 14,
+        with_transcripts: bool = True,
+        skip_ids: set[str] | None = None,
     ) -> list[Video]:
         """Full pipeline: fetch latest videos + optionally attach transcripts."""
-        videos = self.fetch_latest_videos(within_days)
+        videos = self.fetch_latest_videos(within_days, skip_ids=skip_ids)
         if with_transcripts:
             videos = [self.fetch_transcript(v) for v in videos]
         return videos

@@ -530,3 +530,132 @@ ai-event-agreegator/
 2. Build API layer to serve digest data
 3. Build frontend or notification output (email / Slack digest)
 4. Wire `select_channels()` from `selector.py` into `main.py` when interactive channel picking is needed
+
+---
+
+## 2026-03-11 — Curator agent + pipeline refactor
+
+### What was built
+
+**`agent/curator_agent.py`** (new)
+- Reads `docs/user_context.md` at import time as system prompt context (Yohannes's profile)
+- Sends all recent digests to `gpt-4o-mini`, asks for top 10 ranked by relevance 0–100
+- Returns `CuratorResult(ranked_articles: list[RankedArticle])` via OpenAI structured output
+- Each `RankedArticle`: `article_id`, `article_type`, `title`, `summary`, `score`, `ranking_reason`
+
+**`docs/user_context.md`** (new)
+- Yohannes's profile: CS+Economics student at SCSU, Applied AI Engineering focus
+- Building AI Aggregator, CodePath AI110 (RAG+agentic), targeting AI/ML internship Summer 2026
+
+**`app/services/process_curator.py`** (new)
+- Fetches last 24h digests from DB, calls curator agent, prints top 10
+- Deduplicates by `article_id` (LLM occasionally returns same item twice)
+- Does **not** persist scores — ranking is display-only
+
+**`app/services/process_digest.py`** refactored
+- Event digesting removed — events are now summarized inline in `save_events()`
+- `process_digest()` only processes YouTube videos now
+
+**`app/db/repository.py`** additions
+- `get_existing_video_ids(db) -> set[str]` — loads all known video IDs for skip optimization
+- `get_recent_digests(db, hours=24) -> list[Digest]` — filtered by `uploaded_at`
+- `save_events()` now calls `event_agent.run()` inline to generate `summary` + `relevance_score` for new events
+
+**`app/db/models.py`** changes
+- `Event` model: added `summary` (Text) and `relevance_score` (Integer) columns
+- `Digest` model: renamed `created_at` → `uploaded_at`; removed `relevance_score`, `curator_score`, `curator_reason`
+
+**`app/scrapers/youtube/scraper.py`** optimization
+- Added `skip_ids: set[str] | None` to `fetch_latest_videos()` and `scrape()`
+- Skip checked **before** `_is_short()` HEAD request — avoids all network calls for known videos
+
+**`agent/event_agent.py`** simplified
+- Now returns `EventSummaryResult(summary: str, relevance_score: int)` directly
+- No longer writes full digest; just provides summary + score for the Event row
+
+### Current full pipeline (`make run`)
+1. Scrape events → upsert to `events` (summary + relevance_score generated inline for new events)
+2. Load existing video IDs from DB
+3. Scrape YouTube (last 5 days), skipping known IDs → upsert to `youtube_videos`
+4. Digest unprocessed videos via OpenAI → save to `digests`
+5. Run curator agent on last 24h digests → print top 10 ranked results
+
+### What works
+- Events get AI summary + relevance score directly on the `events` row (no separate digest)
+- YouTube re-runs skip all already-scraped videos (no redundant Shorts checks or transcript fetches)
+- Curator ranks and explains top 10 items personalized to Yohannes's profile
+- Full pipeline is idempotent
+
+### Errors hit
+- `curator_score` NULL even after DB write: `db.merge()` on an already session-tracked object creates a detached copy — fix is to modify the object directly. Ultimately decided not to persist scores at all.
+- `psycopg2.errors.UndefinedColumn` on `curator_score`: model updated before DB column added. Fixed with `ALTER TABLE digests ADD COLUMN IF NOT EXISTS`.
+
+### What's next
+1. Wire up APScheduler to run the full pipeline on a schedule
+2. Build API layer to serve digest data
+3. Build frontend or notification output (email / Slack digest)
+---
+
+## 2026-03-11 — Email agents + HTML dashboard
+
+### What was built
+
+**`agent/youtube_email_agent.py`** (new)
+- Uses `gpt-4o-mini` structured output to generate a YouTube digest email
+- Returns `YouTubeEmailResult(subject, greeting, introduction, articles: list[VideoSection], signature)`
+- Each `VideoSection`: `title`, `channel_name`, `channel_url`, `summary`, `tools_concepts`, `score`, `ranking_reason`, `url`
+
+**`agent/events_email_agent.py`** (new)
+- Uses `gpt-4o-mini` structured output to generate an events digest email
+- Returns `EventsEmailResult(subject, greeting, introduction, events: list[EventSection], signature)`
+- Each `EventSection`: `title`, `date_time`, `location`, `summary`, `relevance_score`, `ranking_reason`, `url`
+
+**`app/email/render.py`** (new)
+- `render_youtube_email(result)` + `render_events_email(result)` — full HTML email builders
+- Inline styles only (Gmail-compatible) — no CSS variables, no animations
+- Matches dashboard palette: `#07070a` bg, amber `#e8a020` for videos, teal `#18c4a0` for events
+- Score badge color-coded: gold (≥85), amber (≥70), orange (<70)
+- Georgia serif fallback for headers
+
+**`app/services/process_youtube_email.py`** (new)
+- Fetches last 24h digests, builds `digest_map` with channel metadata joined from `youtube_videos`
+- Calls curator agent → top 10 → `youtube_email_agent.run()` → renders HTML → sends via Gmail SMTP
+
+**`app/services/process_events_email.py`** (new)
+- Queries `events` table for next 14 days with `relevance_score >= 70`
+- Calls `events_email_agent.run()` → renders HTML → sends via Gmail SMTP
+
+**`templates/dashboard.html`** (new)
+- Standalone HTML dashboard for "The Stack" — dark editorial aesthetic
+- Bodoni Moda + Outfit fonts, amber/teal accents, rank number overlays, animated score bars
+- "See More" toggle to expand lower-scored events
+- Mock data — will connect to real API in next phase
+
+**`main.py`** — added `process_youtube_email(db)` and `process_events_email(db)` calls
+
+### Current full pipeline (`make run`)
+1. Scrape events → upsert to `events` (summary + relevance_score inline)
+2. Load existing video IDs from DB
+3. Scrape YouTube (last 5 days), skipping known IDs → upsert to `youtube_videos`
+4. Digest unprocessed videos → save to `digests`
+5. Curator ranks last 24h digests → prints top 10
+6. YouTube email: top 10 ranked → HTML email → Gmail
+7. Events email: next 14 days, score ≥ 70 → HTML email → Gmail
+
+### What works
+- HTML emails send successfully via Gmail SMTP with app password
+- Emails render correctly in Gmail (dark bg, amber/teal cards, score badges)
+- Events email skips gracefully if no events qualify
+- Dashboard HTML opens in browser with full mock data and "See More" toggle
+
+### Errors hit
+- `Send error: 'GMAIL_SENDER'` — env vars missing from `.env` (only in `.env.example`)
+- Gmail app password with spaces must be quoted: `GMAIL_APP_PASSWORD="xxxx xxxx xxxx xxxx"`
+- Channel name showing "Unknown" in emails — `d.source` empty for some digests; pending fix
+- `ALTER TABLE digests DROP COLUMN curator_score/curator_reason` — ran manually to clean up DB
+
+### What's next
+1. Fix channel name/id in YouTube email — trace `source` field through digest pipeline
+2. Wire up APScheduler for automated daily runs
+3. Build FastAPI API layer to serve digest data
+4. Wire dashboard to real API (replace mock data)
