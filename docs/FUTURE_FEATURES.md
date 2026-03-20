@@ -32,6 +32,7 @@ This file tracks future features, enhancements, and follow-up ideas that come up
 | Live Dashboard Data Wiring | 2026-03-12 | Dashboard HTML now renders from real DB data and refreshes on each pipeline run via a generated static artifact. | Dashboard data session |
 | Streamlit Demo Console | 2026-03-12 | Local demo shell for DB stats, ranked content, dashboard preview, and on-demand digest actions. | Demo phases session |
 | Demo Context Editor | 2026-03-12 | Streamlit can now edit `docs/user_context.md` directly and trigger a fresh curator run so personalization changes are visible immediately. | Demo context editor session |
+| Context Snapshot Archive | 2026-03-12 | User context can be archived to timestamped markdown snapshots before edits, both manually and from the demo app. | Context snapshot archive session |
 
 ## Current Backlog
 

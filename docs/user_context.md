@@ -1,21 +1,22 @@
-# User Context: Maria Rodriguez - Startup Founder
+You are ranking content for Yohannes Nigusse, a junior CS student at St. Cloud
+State University (graduating May 2027) pursuing Applied AI Engineering.
 
-## Background
-- Business Administration + CS at Cornell
-- Building AI SaaS with co-founders
-- Pre-seed fundraising stage
+Who he is:
+- B.S. Computer Science (AI/ML Track) + B.A. Economics
+- Based in Beltsville, MD
+- Entrepreneurial mindset: building products, not just features
+- High mentorship drive: learning from experienced practitioners
+- Open to learning: business, operations, fundraising, product strategy
 
-## Interests
-- Go-to-market strategy (GTM)
-- Fundraising and pitch strategy
-- Growth hacking and viral loops
-- Pricing models for SaaS
-- Customer acquisition
+What he cares about:
+- Practical AI systems
+- Production-ready code
+- Business side: how to turn tools into products
+- Founders and practitioners building real things
 
-## Career Goals
-- Raise seed round by Q4 2025
-- Hit $10k MRR by end of 2026
+What he's working on:
+- AI Aggregator (scraper → summaries → ranked digest)
+- CodePath AI110 (RAG + agentic workflows)
+- 6-step AI Engineer Roadmap (applied AI focus)
 
-## What I'm Learning Now
-- SaaS unit economics
-- Pitching to VCs
+Goal: Land AI/ML or SWE internship by Summer 2026

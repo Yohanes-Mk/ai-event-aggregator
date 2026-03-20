@@ -1389,3 +1389,75 @@ make test     → uv run pytest
 ### What's next
 1. Use the archive button before making major demo-profile edits.
 2. If snapshot volume grows, add a small sidebar list of recent snapshots later instead of changing the archive format now.
+
+---
+
+## 2026-03-17 — Progress docs audit
+
+### Structure changes
+- None. This session was a documentation/state audit only.
+
+### What was built / changed
+- Audited the current repo structure, demo checklist, and feature summary against the actual codebase.
+- Added `Context Snapshot Archive` to the implemented-features summary in `docs/FUTURE_FEATURES.md`, which had been shipped but not yet listed there.
+- Confirmed `docs/context_snapshots/` contains the current saved context archives and is already represented in the project status structure tracking.
+
+### What works
+- `docs/PROJECT_STATUS.md` is aligned with the current major source structure.
+- `docs/DEMO_PHASES.md` reflects the shipped Streamlit demo, live email sending, context editor, and snapshot flow.
+- `docs/FUTURE_FEATURES.md` now includes the full set of shipped demo-related capabilities, including context snapshots.
+
+### Errors hit
+- None.
+
+### What's next
+1. Keep appending new dated entries only when actual code or workflow changes happen.
+2. If the demo flow changes again, update `docs/DEMO_PHASES.md` and the capability summary in the same session.
+
+---
+
+## 2026-03-20 — README run guide added
+
+### Structure changes
+- None. This session updated documentation only.
+
+### What was built / changed
+- Replaced the empty `README.md` with a practical run guide for the current project.
+- Documented the main workflows:
+  - `make run`
+  - `make db-init`
+  - `make dashboard`
+  - `make demo`
+  - `make test`
+  - monitoring report targets
+- Added setup instructions for `uv`, local `.env`, Docker-backed Postgres, and using an external Postgres instance instead of Docker.
+- Added an environment-variable reference covering the vars the code currently reads:
+  - `DATABASE_URL`
+  - `OPENAI_API_KEY`
+  - `GMAIL_SENDER`
+  - `GMAIL_RECIPIENT`
+  - `GMAIL_APP_PASSWORD`
+  - `WEBSHARE_PROXY_USERNAME`
+  - `WEBSHARE_PROXY_PASSWORD`
+  - `PIPELINE_CONFIG_VERSION`
+  - `DASHBOARD_RECIPIENT_NAME`
+  - Docker Compose `POSTGRES_*`
+- Documented the `monitoring-compare` Make variables:
+  - `BEFORE_START`
+  - `BEFORE_END`
+  - `AFTER_START`
+  - `AFTER_END`
+
+### What works
+- The repo now has a usable top-level README instead of a blank file.
+- Another agent or collaborator can see the expected setup path, supported run commands, and which variables are required vs optional without re-reading the codebase.
+
+### Errors hit
+- None.
+
+### What wasn't verified
+- No runtime commands were executed in this session, so the README was validated against source code paths and Make targets rather than by running the full pipeline.
+
+### What's next
+1. If the env surface changes again, update `README.md`, `.env.example`, and this status log in the same session.
+2. If email or demo behavior changes, keep the README's variable table aligned with the actual code paths.
