@@ -1506,3 +1506,32 @@ make test     → uv run pytest
 1. Deploy the app on Streamlit Community Cloud using `scripts/demo_app.py` and the new secrets template.
 2. Point `DATABASE_URL` at a hosted Postgres instance with real seeded data so the dashboard, rankings, and events sections are populated on first open.
 3. If persistent in-app profile editing matters later, move `docs/user_context.md` storage out of the local filesystem and into a durable backing store.
+
+---
+
+## 2026-03-20 — Streamlit secrets hydration fix
+
+### Structure changes
+- None. This session updated startup behavior and docs only.
+
+### What was built / changed
+- Updated `scripts/demo_app.py` to read root-level Streamlit secrets and copy them into `os.environ` before importing DB and service modules.
+- Added a guard for the no-secrets local-development case so bare imports still work without a `.streamlit/secrets.toml` file.
+- Updated `docs/DEMO_PHASES.md` to record the hosted-secrets hydration behavior.
+
+### Why this changed
+- On Streamlit Community Cloud, the app was showing the hosted `DATABASE_URL` later in the UI but the SQLAlchemy engine could still be initialized against the localhost fallback during import-time startup.
+- Hydrating Streamlit secrets before importing `app.db.session` makes the DB/session layer and any import-time env readers use the hosted values consistently.
+
+### Verification
+- `uv run python -m py_compile scripts/demo_app.py` — passed
+- `uv run python -c "import importlib.util, pathlib; p=pathlib.Path('scripts/demo_app.py'); s=importlib.util.spec_from_file_location('demo_app', p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); print('demo_app import ok')"` — passed
+- Bare-mode Streamlit emitted its normal missing `ScriptRunContext` warning during import verification, which is expected outside `streamlit run`.
+
+### Errors hit
+- Initial implementation raised `StreamlitSecretNotFoundError` during local bare imports when no secrets file was present. Fixed by treating missing Streamlit secrets as a normal local-dev case.
+
+### What's next
+1. Redeploy or reboot the hosted app so the updated startup order is used.
+2. Re-test the hosted app with the current Supabase `DATABASE_URL`.
+3. If the app still fails after the code fix, validate the Supabase connection string and project health directly from the provider side.

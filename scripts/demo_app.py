@@ -10,12 +10,39 @@ import streamlit as st
 import streamlit.components.v1 as components
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
+from streamlit.errors import StreamlitSecretNotFoundError
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 load_dotenv()
+
+
+def _hydrate_env_from_streamlit_secrets() -> None:
+    try:
+        secret_keys = set(st.secrets.keys())
+    except StreamlitSecretNotFoundError:
+        return
+
+    for key in (
+        "DATABASE_URL",
+        "OPENAI_API_KEY",
+        "GMAIL_SENDER",
+        "GMAIL_APP_PASSWORD",
+        "GMAIL_RECIPIENT",
+        "WEBSHARE_PROXY_USERNAME",
+        "WEBSHARE_PROXY_PASSWORD",
+        "PIPELINE_CONFIG_VERSION",
+        "DASHBOARD_RECIPIENT_NAME",
+    ):
+        if os.getenv(key):
+            continue
+        if key in secret_keys:
+            os.environ[key] = str(st.secrets[key])
+
+
+_hydrate_env_from_streamlit_secrets()
 
 from app.db import repository
 from app.db.bootstrap import ensure_tables

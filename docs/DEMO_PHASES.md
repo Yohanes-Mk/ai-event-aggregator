@@ -92,6 +92,7 @@ This file tracks the demo-first roadmap so another coding agent can continue fro
 - 2026-03-12: Email delivery from the demo app was user-verified after the `.env` loading fix.
 - 2026-03-20: Added a Streamlit Community Cloud deploy runbook to `README.md`, a `.streamlit/secrets.toml.example` template, and startup-side DB bootstrap so a fresh hosted Postgres can come online without a separate manual init step.
 - 2026-03-20: The demo app now shows a setup screen when DB config/bootstrap fails instead of crashing immediately, which makes hosted deployment issues much easier to diagnose.
+- 2026-03-20: The demo app now hydrates root-level Streamlit secrets into `os.environ` before DB/service imports so hosted `DATABASE_URL` and related runtime keys are available even when the app modules read env vars at import time.
 
 ## Phase 7 — Post-Demo Evolution
 
