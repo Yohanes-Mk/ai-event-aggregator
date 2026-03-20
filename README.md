@@ -91,6 +91,8 @@ make demo
 
 This also runs `db-init` first.
 
+For a hosted deploy, use Streamlit Community Cloud with `scripts/demo_app.py` as the app entrypoint.
+
 ### Run tests
 
 ```bash
@@ -210,3 +212,39 @@ make run
 - `make dashboard` and `make demo` both depend on the database being reachable.
 - The pipeline is resilient in a few places: missing Gmail settings do not stop scraping, and digest failures are handled per item.
 - The dashboard artifact is static HTML, so it will not auto-refresh unless you rerun the dashboard build or the full pipeline.
+- The demo app now attempts the DB/table bootstrap on startup, which helps first-run hosted deployments against a fresh Postgres instance.
+
+## Streamlit Community Cloud Deploy
+
+This repo is already set up to deploy the demo shell on Streamlit Community Cloud.
+
+Use these settings in the deploy form:
+
+- Repository: this repo on GitHub
+- Main file path: `scripts/demo_app.py`
+- Python version: `3.14` if available in Streamlit's Advanced settings
+
+Secrets:
+
+1. Open `.streamlit/secrets.toml.example`
+2. Copy the keys into your Streamlit app Secrets panel
+3. Replace the placeholder values with your real credentials
+
+Minimum hosted setup:
+
+- `DATABASE_URL`
+
+Full hosted setup:
+
+- `DATABASE_URL`
+- `OPENAI_API_KEY`
+- `GMAIL_SENDER`
+- `GMAIL_APP_PASSWORD`
+- `GMAIL_RECIPIENT`
+
+Hosted behavior notes:
+
+- `DATABASE_URL` should point at a hosted Postgres instance. The local fallback URL in the code will not work on Streamlit Community Cloud.
+- On first boot, the app will try to create/update its tables automatically. That removes the need for a separate `db-init` step for a fresh hosted database.
+- The Streamlit app is the operator/demo shell only. It does not replace the scheduled scraping pipeline.
+- Context edits and snapshot archives are file-based, so on hosted Streamlit they are container-local and can reset after a reboot or redeploy.

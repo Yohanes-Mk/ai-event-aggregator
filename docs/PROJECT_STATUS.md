@@ -30,6 +30,7 @@ ai-event-agreegator/
 │   │   └── render.py
 │   ├── db/
 │   │   ├── __init__.py
+│   │   ├── bootstrap.py
 │   │   ├── models.py
 │   │   ├── repository.py
 │   │   └── session.py
@@ -91,7 +92,8 @@ ai-event-agreegator/
 │   ├── test_event_scraper.py
 │   └── test_youtube_scraper.py
 ├── .streamlit/
-│   └── config.toml
+│   ├── config.toml
+│   └── secrets.toml.example
 ├── .env.example
 ├── .gitignore
 ├── .python-version
@@ -114,6 +116,7 @@ Major paths only. Use this ledger for creates, removes, moves, and renames that 
 | `app/` | dir | 2026-03-10 |  | Core application package. |
 | `app/dashboard/` | dir | 2026-03-12 |  | Static dashboard rendering from real DB data. |
 | `app/db/` | dir | 2026-03-10 |  | Scaffolded initially; DB models and repository added later the same day. |
+| `app/db/bootstrap.py` | file | 2026-03-20 |  | Shared DB/table bootstrap logic reused by the CLI init script and the Streamlit demo app. |
 | `app/models/` | dir | 2026-03-10 |  | Shared app-level models package; currently minimal. |
 | `app/scrapers/events/` | dir | 2026-03-10 |  | Event scraping added in session 2. |
 | `app/email/` | dir | 2026-03-11 |  | HTML email rendering package. |
@@ -139,6 +142,7 @@ Major paths only. Use this ledger for creates, removes, moves, and renames that 
 | `tests/` | dir | 2026-03-10 |  | Integration tests. |
 | `.streamlit/` | dir | 2026-03-12 |  | Local Streamlit theme configuration for the demo console. |
 | `.streamlit/config.toml` | file | 2026-03-12 |  | Streamlit theme settings for the demo app. |
+| `.streamlit/secrets.toml.example` | file | 2026-03-20 |  | Example secrets payload for Streamlit Community Cloud deployment. |
 | `AGENTS.md` | file | 2026-03-12 |  | Repo-local agent workflow rules. |
 | `Makefile` | file | 2026-03-10 |  | Added during project cleanup. |
 | `main.py` | file | 2026-03-10 |  | Root pipeline entrypoint. |
@@ -1461,3 +1465,44 @@ make test     → uv run pytest
 ### What's next
 1. If the env surface changes again, update `README.md`, `.env.example`, and this status log in the same session.
 2. If email or demo behavior changes, keep the README's variable table aligned with the actual code paths.
+
+---
+
+## 2026-03-20 — Streamlit Cloud deploy hardening
+
+### Structure changes
+- Added `app/db/bootstrap.py` to centralize DB/table bootstrap logic.
+- Added `.streamlit/secrets.toml.example` as a copy/paste template for hosted Streamlit secrets.
+
+### What was built / changed
+- Moved the schema/bootstrap logic out of `scripts/create_tables.py` into `app/db/bootstrap.py` so the same path can be reused by both CLI setup and the Streamlit app.
+- Updated `scripts/create_tables.py` to call the shared bootstrap helper instead of owning its own copy of the SQL patch list.
+- Updated `scripts/demo_app.py` so it:
+  - attempts DB/table bootstrap on startup
+  - surfaces `DATABASE_URL` readiness alongside the existing Gmail/OpenAI checks
+  - shows a hosted-friendly setup screen when DB config/bootstrap fails instead of crashing immediately
+  - warns that context edits and snapshot archives are file-based and therefore ephemeral on hosted Streamlit deploys
+- Updated `.gitignore` to ignore `.streamlit/secrets.toml`.
+- Expanded `README.md` with a Streamlit Community Cloud deploy section covering:
+  - app entrypoint
+  - required secrets
+  - first-run DB bootstrap behavior
+  - hosted limitations for file-backed context editing
+- Updated `docs/DEMO_PHASES.md` to record the new hosted deploy runbook and the graceful setup-state behavior.
+
+### What works
+- The demo shell can now bring a fresh Postgres schema online on first startup instead of requiring a separate manual init step.
+- Hosted deploy failures caused by a missing or unreachable database now produce an operator-readable setup screen instead of a hard crash.
+- The deploy path is documented end-to-end in repo docs, including a secrets template another agent can reuse directly.
+
+### Verification
+- `uv run python -c "import importlib.util; import pathlib; import app.db.bootstrap; path = pathlib.Path('scripts/demo_app.py'); spec = importlib.util.spec_from_file_location('demo_app', path); module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module); print('loaded bootstrap and demo_app')"` — passed
+- Bare-mode Streamlit emitted its normal missing `ScriptRunContext` warning during import verification, which is expected outside `streamlit run`.
+
+### Errors hit
+- None.
+
+### What's next
+1. Deploy the app on Streamlit Community Cloud using `scripts/demo_app.py` and the new secrets template.
+2. Point `DATABASE_URL` at a hosted Postgres instance with real seeded data so the dashboard, rankings, and events sections are populated on first open.
+3. If persistent in-app profile editing matters later, move `docs/user_context.md` storage out of the local filesystem and into a durable backing store.

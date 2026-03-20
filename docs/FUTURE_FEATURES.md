@@ -31,6 +31,7 @@ This file tracks future features, enhancements, and follow-up ideas that come up
 | YouTube Shorts Classification Cache | 2026-03-12 | Shorts checks now use a persisted classification cache plus scrape telemetry for cache hits, network calls, and filtered Shorts. | Shorts optimization session |
 | Live Dashboard Data Wiring | 2026-03-12 | Dashboard HTML now renders from real DB data and refreshes on each pipeline run via a generated static artifact. | Dashboard data session |
 | Streamlit Demo Console | 2026-03-12 | Local demo shell for DB stats, ranked content, dashboard preview, and on-demand digest actions. | Demo phases session |
+| Hosted Streamlit Deploy Readiness | 2026-03-20 | Streamlit demo now bootstraps DB tables on startup, shows a setup screen when hosted DB config is missing, and ships with a Community Cloud deploy runbook plus secrets template. | Streamlit deploy hardening session |
 | Demo Context Editor | 2026-03-12 | Streamlit can now edit `docs/user_context.md` directly and trigger a fresh curator run so personalization changes are visible immediately. | Demo context editor session |
 | Context Snapshot Archive | 2026-03-12 | User context can be archived to timestamped markdown snapshots before edits, both manually and from the demo app. | Context snapshot archive session |
 
@@ -48,6 +49,7 @@ This file tracks future features, enhancements, and follow-up ideas that come up
 | Slack Digest Delivery | Proposed | Deliver curated content through Slack in addition to email. | Earlier notification backlog |
 | Structured Digest Tool Tags | Proposed | Store `tools_concepts` in a structured format so dashboard/email tags stay clean instead of being split from a raw text blob. | Dashboard data session |
 | Demo Profile Override | Proposed | Allow temporary profile override in the demo UI only when curator personalization is wired to accept runtime user context cleanly. | Demo phases session |
+| Durable Demo Profile Storage | Proposed | Move demo profile/context editing off the app filesystem so hosted Streamlit deploys do not lose user-context changes on reboot or redeploy. | Streamlit deploy hardening session |
 | Interactive Channel Selector Wiring | Proposed | Wire `app/scrapers/youtube/selector.py` into the main workflow when interactive channel picking is needed. | 2026-03-11 selector session |
 | YouTube Email Channel Metadata Hardening | Proposed | Fix incomplete channel/source metadata so email rendering never shows unknown channel values. | 2026-03-11 email session |
 
@@ -159,3 +161,15 @@ This file tracks future features, enhancements, and follow-up ideas that come up
 ### Why this changed
 - The repo now has a demo-first local app that surfaces real DB data, previews the generated dashboard, and can trigger the existing dashboard/email flows on demand.
 - Personalized profile editing is still future work because the current curator path is not yet cleanly parameterized for runtime user-profile overrides from the UI.
+
+---
+
+## 2026-03-20 — Hosted Streamlit deploy path shipped
+
+### What changed
+- Added `Hosted Streamlit Deploy Readiness` to `Implemented Features`.
+- Added `Durable Demo Profile Storage` to `Current Backlog`.
+
+### Why this changed
+- The repo now includes a hosted deploy runbook, secrets template, shared DB bootstrap, and a graceful setup-state UI for Streamlit Community Cloud.
+- The deployment pass made one limitation explicit: the demo context editor still writes to local files, so hosted edits are not durable across reboot/redeploy until that state moves into persistent storage.

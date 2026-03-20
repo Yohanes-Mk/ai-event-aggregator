@@ -84,12 +84,14 @@ This file tracks the demo-first roadmap so another coding agent can continue fro
 - [x] Verify the Streamlit app imports and starts cleanly
 - [ ] Verify the demo app can trigger real dashboard rendering
 - [x] Verify the demo app can trigger real email delivery
-- [ ] Add a short demo-day runbook if needed
+- [x] Add a short demo-day runbook if needed
 
 ### Notes
 - 2026-03-12: `make demo` now launches `streamlit run scripts/demo_app.py`. Import verification passed; dashboard generation was also exercised through the same service path the UI uses.
 - 2026-03-12: Bare import verification still passes after the layout rebuild and `.env` loading change.
 - 2026-03-12: Email delivery from the demo app was user-verified after the `.env` loading fix.
+- 2026-03-20: Added a Streamlit Community Cloud deploy runbook to `README.md`, a `.streamlit/secrets.toml.example` template, and startup-side DB bootstrap so a fresh hosted Postgres can come online without a separate manual init step.
+- 2026-03-20: The demo app now shows a setup screen when DB config/bootstrap fails instead of crashing immediately, which makes hosted deployment issues much easier to diagnose.
 
 ## Phase 7 — Post-Demo Evolution
 

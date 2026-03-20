@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
 load_dotenv()
 
 from app.db import repository
+from app.db.bootstrap import ensure_tables
 from app.db.models import CuratorRun, Digest, Event, YouTubeVideo
 from app.db.session import SessionLocal
 from app.monitoring import configure_logging
@@ -197,11 +198,20 @@ def _fmt_dt(value: datetime | None) -> str:
 
 def _env_ready() -> dict[str, bool]:
     return {
+        "DATABASE_URL": bool(os.getenv("DATABASE_URL")),
         "OPENAI_API_KEY": bool(os.getenv("OPENAI_API_KEY")),
         "GMAIL_SENDER": bool(os.getenv("GMAIL_SENDER")),
         "GMAIL_APP_PASSWORD": bool(os.getenv("GMAIL_APP_PASSWORD")),
         "GMAIL_RECIPIENT": bool(os.getenv("GMAIL_RECIPIENT")),
     }
+
+
+def _database_target() -> str:
+    return os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/aggregator")
+
+
+def _using_fallback_database_url() -> bool:
+    return not bool(os.getenv("DATABASE_URL"))
 
 
 def _load_snapshot() -> dict:
@@ -236,6 +246,45 @@ def _section_intro(label: str, title: str, copy: str) -> None:
     st.markdown(f'<div class="section-label">{label}</div>', unsafe_allow_html=True)
     st.subheader(title)
     st.caption(copy)
+
+
+def _render_setup_screen(exc: Exception) -> None:
+    st.title("AI Aggregator Demo")
+    st.caption("The Streamlit shell is up, but the backing database is not ready yet.")
+
+    if _using_fallback_database_url():
+        st.error(
+            "No `DATABASE_URL` is configured, so the app is falling back to the local default Postgres URL. "
+            "That works on your laptop, but it will fail on Streamlit Community Cloud."
+        )
+    else:
+        st.error("The app could not connect to the configured database or finish the first-run schema bootstrap.")
+
+    with st.container(border=True):
+        st.markdown("#### Fix this")
+        st.markdown(
+            "1. Add a hosted Postgres `DATABASE_URL` in Streamlit app secrets.\n"
+            "2. Redeploy or reboot the app.\n"
+            "3. Refresh this page. The app now attempts the table bootstrap automatically on startup."
+        )
+        st.caption(f"Current DB target: `{_database_target()}`")
+
+    with st.container(border=True):
+        st.markdown("#### Required secrets")
+        st.code(
+            'DATABASE_URL = "postgresql://user:password@host:5432/dbname"\n'
+            'OPENAI_API_KEY = "sk-..."\n'
+            'GMAIL_SENDER = "you@gmail.com"\n'
+            'GMAIL_APP_PASSWORD = "app-password"\n'
+            'GMAIL_RECIPIENT = "you@example.com"',
+            language="toml",
+        )
+        st.caption(
+            "Only `DATABASE_URL` is required to load the dashboard shell. OpenAI and Gmail are only needed for the live send/rerank actions."
+        )
+
+    with st.expander("Technical details"):
+        st.code(str(exc))
 
 
 def _render_sidebar(snapshot: dict) -> None:
@@ -470,6 +519,9 @@ def _render_context_editor() -> None:
         st.caption(
             "Events email does not depend on this context. The YouTube digest and dashboard do, but only after a fresh curator run."
         )
+        st.caption(
+            "Hosted Streamlit deploys keep these file edits on the running app container only, so changes can reset after a reboot or redeploy."
+        )
 
         if save_clicked:
             save_user_context(context_value)
@@ -601,7 +653,13 @@ def _render_content(snapshot: dict) -> None:
 
 def main() -> None:
     _apply_styles()
-    snapshot = _load_snapshot()
+    try:
+        ensure_tables()
+        snapshot = _load_snapshot()
+    except Exception as exc:
+        _render_setup_screen(exc)
+        return
+
     _render_sidebar(snapshot)
     _render_hero(snapshot)
     _preview_dashboard()
