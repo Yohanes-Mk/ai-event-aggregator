@@ -555,243 +555,16 @@
 
   </main>
 
+  <!-- __STACK_DATA__ -->
   <script>
-    // ─── DATA ─────────────────────────────────────────────────────────
-    // Replace with real API data when FastAPI layer is ready.
-    // Shape matches the real DB models from the aggregator.
-
-    const VIDEOS = [
-      {
-        rank: 1,
-        title: "What Is an AI Operating System? (And Why Every Business Will Need One)",
-        channel_name: "The Futur",
-        channel_url: "https://www.youtube.com/@thefutur",
-        summary: "Breaks down the concept of an AI Operating System (AIOS) — a methodology layer around existing tools that automates workflows and frees entrepreneurs to focus on growth. Covers integration with Claude Code and real-world productivity gains.",
-        tools_concepts: ["AIOS", "Claude Code", "Workflow Automation", "LLM Orchestration"],
-        score: 95,
-        ranking_reason: "Directly aligns with building practical AI systems and the business side of turning tools into products.",
-        url: "https://www.youtube.com/watch?v=example1"
-      },
-      {
-        rank: 2,
-        title: "gpt-5.4 is really, really good",
-        channel_name: "Fireship",
-        channel_url: "https://www.youtube.com/@Fireship",
-        summary: "Covers GPT-5.4's leap in coding and reasoning tasks, context handling improvements, and token efficiency gains. Side-by-side comparisons with GPT-4o and Claude on real coding benchmarks.",
-        tools_concepts: ["GPT-5.4", "LLM Benchmarks", "Code Generation", "Token Efficiency"],
-        score: 92,
-        ranking_reason: "Essential for any AI engineer staying current with model capabilities.",
-        url: "https://www.youtube.com/watch?v=example2"
-      },
-      {
-        rank: 3,
-        title: "What the New ChatGPT 5.4 Means for the World",
-        channel_name: "AI Explained",
-        channel_url: "https://www.youtube.com/@aiexplained-official",
-        summary: "Analysis of GPT-5.4's societal and professional impact — from software development workflows to knowledge work displacement. Examines what the new capability threshold means for students entering the AI job market.",
-        tools_concepts: ["GPT-5.4", "AI Policy", "Job Market", "Capability Evaluation"],
-        score: 90,
-        ranking_reason: "Critical context for an AI/ML student planning their career trajectory through 2026.",
-        url: "https://www.youtube.com/watch?v=example3"
-      },
-      {
-        rank: 4,
-        title: "Building a Production RAG System from Scratch",
-        channel_name: "Andrej Karpathy",
-        channel_url: "https://www.youtube.com/@AndrejKarpathy",
-        summary: "Full walkthrough of a production-grade RAG pipeline: chunking strategies, embedding models, vector DB selection (Qdrant vs Pinecone vs pgvector), reranking, and query routing. Built with real latency and cost constraints.",
-        tools_concepts: ["RAG", "pgvector", "Qdrant", "Embedding Models", "Reranking", "Query Routing"],
-        score: 88,
-        ranking_reason: "Directly applicable to the CodePath AI110 RAG + agentic workflows project.",
-        url: "https://www.youtube.com/watch?v=example4"
-      },
-      {
-        rank: 5,
-        title: "The Agentic Loop Explained",
-        channel_name: "Latent Space",
-        channel_url: "https://www.youtube.com/@latentspacepod",
-        summary: "Deep dive into how agentic AI systems handle tool use, memory, and planning loops. Covers ReAct, Plan-and-Execute, and Reflection patterns with worked examples in LangGraph and custom frameworks.",
-        tools_concepts: ["Agentic AI", "ReAct", "LangGraph", "Tool Use", "Memory Systems"],
-        score: 86,
-        ranking_reason: "Core architecture knowledge for building production agentic workflows.",
-        url: "https://www.youtube.com/watch?v=example5"
-      },
-      {
-        rank: 6,
-        title: "Are you f**king kidding? Age Verification Laws Hit Developers",
-        channel_name: "Theo - t3.gg",
-        channel_url: "https://www.youtube.com/@t3dotgg",
-        summary: "Theo breaks down California and Colorado's new age verification requirements and what they mean for indie developers and startups. Covers technical compliance options and the legal exposure for small teams.",
-        tools_concepts: ["Web Law", "Age Verification", "Compliance", "Startup Risk"],
-        score: 82,
-        ranking_reason: "Essential awareness for anyone building consumer-facing products.",
-        url: "https://www.youtube.com/watch?v=example6"
-      },
-      {
-        rank: 7,
-        title: "I Spent 30 Days Building with Claude's API — Here's What I Learned",
-        channel_name: "Greg Isenberg",
-        channel_url: "https://www.youtube.com/@gregisenberg",
-        summary: "Founder documents 30 days of shipping micro-products using Claude's API. Covers cost optimization, prompt engineering that actually works in prod, and which use cases have the best unit economics.",
-        tools_concepts: ["Claude API", "Prompt Engineering", "Unit Economics", "Micro-SaaS"],
-        score: 80,
-        ranking_reason: "Business + applied AI combination — exactly the entrepreneurial AI engineering angle.",
-        url: "https://www.youtube.com/watch?v=example7"
-      },
-      {
-        rank: 8,
-        title: "The Greatest Unsolved Problem in Computer Science",
-        channel_name: "Veritasium",
-        channel_url: "https://www.youtube.com/@veritasium",
-        summary: "Accessible but rigorous walkthrough of P vs NP, why it matters for cryptography and optimization, and the current state of progress. Includes discussion of what a proof in either direction would mean for AI.",
-        tools_concepts: ["P vs NP", "Computational Complexity", "Algorithms", "Cryptography"],
-        score: 76,
-        ranking_reason: "Fundamental CS knowledge every engineer should internalize deeply.",
-        url: "https://www.youtube.com/watch?v=example8"
-      },
-      {
-        rank: 9,
-        title: "How Founders Actually Raise Their First $500K",
-        channel_name: "My First Million",
-        channel_url: "https://www.youtube.com/@MyFirstMillionPod",
-        summary: "Shaan and Sam break down the actual mechanics of pre-seed fundraising in 2025 — warm intros, deal memos, cap table structuring. Heavy on specific tactics, light on theory.",
-        tools_concepts: ["Fundraising", "Pre-Seed", "Cap Table", "Pitch Decks"],
-        score: 72,
-        ranking_reason: "Relevant for the entrepreneurial track — understanding how products become companies.",
-        url: "https://www.youtube.com/watch?v=example9"
-      },
-      {
-        rank: 10,
-        title: "Stop Speaking in Code: Communication for Engineers",
-        channel_name: "Lex Fridman",
-        channel_url: "https://www.youtube.com/@lexfridman",
-        summary: "Discussion on how the best engineers communicate complex ideas to non-technical stakeholders. Covers the gap between expertise and explanation and why it determines who gets promoted.",
-        tools_concepts: ["Communication", "Technical Leadership", "Career Growth"],
-        score: 68,
-        ranking_reason: "Underrated skill for landing internships and standing out in interviews.",
-        url: "https://www.youtube.com/watch?v=example10"
-      }
-    ];
-
-    const EVENTS = [
-      {
-        title: "Refraction AI Exchange",
-        date: "Thu Mar 12",
-        time: "6:00 PM – 9:00 PM",
-        location: "1776, 1101 15th St NW, Washington DC",
-        summary: "Quarterly gathering of DC's AI startup founders and operators. Pitch demos, investor speed rounds, and structured networking. High signal-to-noise ratio — serious builders only.",
-        score: 92,
-        url: "https://lu.ma/refraction"
-      },
-      {
-        title: "DC AI & Deep Learning Meetup",
-        date: "Tue Mar 18",
-        time: "7:00 PM – 9:30 PM",
-        location: "Capital One Hub, Tysons, VA",
-        summary: "Technical talks on production ML systems and deployment strategies. This month: fine-tuning vs RAG decision frameworks, and a live walkthrough of a deployed recommendation system.",
-        score: 90,
-        url: "https://meetup.com/washington-d-c-artificial-intelligence-deep-learning"
-      },
-      {
-        title: "DC Code & Coffee",
-        date: "Sat Mar 15",
-        time: "9:00 AM – 12:00 PM",
-        location: "The Wydown, 1924 8th St NW, Washington DC",
-        summary: "Informal Saturday morning co-working session for developers. Bring a project, meet people working on interesting problems, get early feedback in a low-pressure setting.",
-        score: 85,
-        url: "https://meetup.com/dc-code-coffee"
-      },
-      {
-        title: "Data Science DC: LLM Evaluation Frameworks",
-        date: "Wed Mar 19",
-        time: "6:30 PM – 8:30 PM",
-        location: "WeWork, 1875 Connecticut Ave NW",
-        summary: "Hands-on workshop covering RAGAS, LLM-as-judge patterns, and building automated evals for RAG pipelines. Speaker from a fintech company shares their production evaluation stack.",
-        score: 88,
-        url: "https://meetup.com/data-science-dc"
-      },
-      {
-        title: "Generative AI DC",
-        date: "Thu Mar 20",
-        time: "6:00 PM – 8:30 PM",
-        location: "Microsoft DC Office, 901 K St NW",
-        summary: "Monthly GenAI meetup focused on applied use cases. March topic: agentic systems in enterprise — what's working, what's not, and the ops challenges nobody talks about.",
-        score: 86,
-        url: "https://meetup.com/dataopsdc"
-      },
-      {
-        title: "Baltimore Code and Coffee",
-        date: "Sun Mar 16",
-        time: "10:00 AM – 1:00 PM",
-        location: "The Charmery, 534 E Belvedere Ave, Baltimore",
-        summary: "Weekly technical co-working in Baltimore. Mix of indie hackers, bootcamp grads, and senior engineers. Good place to find collaborators for side projects.",
-        score: 75,
-        url: "https://meetup.com/baltimore-code-and-coffee"
-      },
-      {
-        title: "ProductTank DC: AI in Product Management",
-        date: "Mon Mar 17",
-        time: "6:30 PM – 8:30 PM",
-        location: "Industrious, 600 14th St NW, Washington DC",
-        summary: "Panel of PMs from Salesforce, Palantir, and a Series B startup discuss how AI is reshaping product roadmaps, user research, and prioritization frameworks.",
-        score: 72,
-        url: "https://meetup.com/producttank-washington-dc"
-      },
-      {
-        title: "AWS DMV: Deploying ML Workloads on SageMaker",
-        date: "Tue Mar 18",
-        time: "6:00 PM – 8:00 PM",
-        location: "Amazon HQ2, 222 Main St, Arlington VA",
-        summary: "Hands-on demo of SageMaker Pipelines, Model Registry, and real-time inference endpoints. Covers cost controls and how to avoid runaway training bills.",
-        score: 80,
-        url: "https://meetup.com/amazon-web-services-dmv"
-      },
-      {
-        title: "Civic Tech DC: Open Data Sprint",
-        date: "Wed Mar 19",
-        time: "6:30 PM – 9:00 PM",
-        location: "Capitol One Café, 655 K St NW, Washington DC",
-        summary: "Collaborative hackathon-style evening using DC open datasets. This sprint focuses on transit data visualization and housing affordability analysis.",
-        score: 60,
-        url: "https://meetup.com/Code-for-DC"
-      },
-      {
-        title: "IGDA DC: Indie Game Dev Showcase",
-        date: "Thu Mar 20",
-        time: "7:00 PM – 10:00 PM",
-        location: "Ubisoft DC, 1401 H St NE, Washington DC",
-        summary: "Monthly meetup for game developers. 5-minute demo slots, portfolio reviews, and networking with designers, artists, and programmers across the DC game dev scene.",
-        score: 45,
-        url: "https://meetup.com/igda-dc"
-      },
-      {
-        title: "EdTech DMV: AI Tutoring Systems Workshop",
-        date: "Fri Mar 21",
-        time: "5:30 PM – 7:30 PM",
-        location: "George Washington University, Funger Hall, Washington DC",
-        summary: "Workshop on building AI-powered tutoring tools. Covers adaptive learning algorithms, student modeling, and ethical considerations in educational AI.",
-        score: 70,
-        url: "https://meetup.com/edtechdmv"
-      },
-      {
-        title: "HacDC Open House",
-        date: "Sat Mar 22",
-        time: "2:00 PM – 6:00 PM",
-        location: "HacDC, 1525 Newton St NW, Washington DC",
-        summary: "Monthly open house at DC's oldest hackerspace. Tours of active projects, open soldering stations, 3D printers, laser cutters. Good for hardware + software folks.",
-        score: 55,
-        url: "https://meetup.com/hac-dc"
-      },
-      {
-        title: "DC iOS: SwiftUI + Core ML Integration",
-        date: "Mon Mar 24",
-        time: "6:30 PM – 8:30 PM",
-        location: "Apple Store Georgetown, 1229 Wisconsin Ave NW",
-        summary: "Technical talk on integrating Core ML models into SwiftUI apps. Covers on-device inference, model compression, and Apple's new Create ML tools.",
-        score: 65,
-        url: "https://meetup.com/dc-ios"
-      }
-    ];
+    const STACK_DATA = window.__STACK_DATA__ || {
+      generated_at: null,
+      recipient_name: 'Yohannes',
+      videos: [],
+      events: []
+    };
+    const VIDEOS = STACK_DATA.videos || [];
+    const EVENTS = STACK_DATA.events || [];
 
     // ─── SCORE COLOR ──────────────────────────────────────────────────
     function scoreColor(n) {
@@ -805,8 +578,13 @@
       const grid = document.getElementById('video-grid');
       document.getElementById('video-count').textContent = `${VIDEOS.length} items ranked`;
 
+      if (!VIDEOS.length) {
+        grid.innerHTML = `<div class="empty-state"><p>NO RANKED VIDEOS AVAILABLE YET</p></div>`;
+        return;
+      }
+
       VIDEOS.forEach((v, i) => {
-        const tags = v.tools_concepts.map(t => `<span class="tag">${t}</span>`).join('');
+        const tags = (v.tools_concepts || []).map(t => `<span class="tag">${t}</span>`).join('');
         const barHeight = v.score + '%';
         const color = scoreColor(v.score);
         const rankStr = String(v.rank).padStart(2, '0');
@@ -845,6 +623,11 @@
       const grid = document.getElementById('events-grid');
       const sorted = [...EVENTS].sort((a, b) => b.score - a.score);
       document.getElementById('event-count').textContent = `${sorted.length} events · next 2 weeks`;
+
+      if (!sorted.length) {
+        grid.innerHTML = `<div class="empty-state"><p>NO UPCOMING EVENTS AVAILABLE YET</p></div>`;
+        return;
+      }
 
       sorted.forEach((e, i) => {
         const color = scoreColor(e.score);
@@ -898,9 +681,10 @@
     });
 
     // ─── DATE ─────────────────────────────────────────────────────────
-    const now = new Date();
+    const now = STACK_DATA.generated_at ? new Date(STACK_DATA.generated_at) : new Date();
     document.getElementById('current-date').textContent =
       now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+    document.querySelector('.recipient-badge strong').textContent = STACK_DATA.recipient_name || 'Yohannes';
 
     // ─── INIT ─────────────────────────────────────────────────────────
     renderVideos();

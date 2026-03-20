@@ -3,8 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.db.session import engine
-from app.db.models import Base
+from app.db.bootstrap import ensure_tables
 
-Base.metadata.create_all(engine)
-print("Tables created: youtube_videos, events, digests")
+table_names = ensure_tables()
+print(f"Tables created: {table_names}")

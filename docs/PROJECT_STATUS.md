@@ -4,36 +4,161 @@ Updates are appended at the bottom. Nothing is deleted — this is a running log
 
 > **Convention:** Update this file after every work session.
 > Add what we built, what works, what doesn't, any errors hit, what's next.
-> Never delete earlier entries — append new sections at the bottom.
-> If something is replaced, removed, or no longer relevant, note that in the new entry (e.g. "replaced X with Y", "X removed — no longer needed") rather than erasing the old entry.
+> Keep the `Current Hierarchy` section below accurate for the current repo state.
+> Keep the `Path Lifecycle Ledger` below accurate for major path creates, removes, moves, and renames.
+> Never delete earlier session entries — append new sections at the bottom.
+> If something is replaced, removed, or no longer relevant, update the lifecycle ledger and note it in the new session entry rather than erasing old session history.
+
+---
+
+## Current Hierarchy
+
+Major paths only. This section is the current-state structure reference, not a full file inventory.
+
+```
+ai-event-agreegator/
+├── agent/
+│   ├── __init__.py
+│   ├── curator_agent.py
+│   ├── event_agent.py
+│   ├── events_email_agent.py
+│   ├── youtube_agent.py
+│   └── youtube_email_agent.py
+├── app/
+│   ├── dashboard/
+│   │   ├── __init__.py
+│   │   └── render.py
+│   ├── db/
+│   │   ├── __init__.py
+│   │   ├── bootstrap.py
+│   │   ├── models.py
+│   │   ├── repository.py
+│   │   └── session.py
+│   ├── email/
+│   │   ├── __init__.py
+│   │   └── render.py
+│   ├── models/
+│   │   └── __init__.py
+│   ├── monitoring/
+│   │   ├── __init__.py
+│   │   ├── alerts.py
+│   │   ├── logging_config.py
+│   │   ├── models.py
+│   │   ├── queries.py
+│   │   ├── report.py
+│   │   ├── stage.py
+│   │   ├── summary.py
+│   │   └── tracker.py
+│   ├── scrapers/
+│   │   ├── events/
+│   │   │   ├── __init__.py
+│   │   │   ├── feeds.py
+│   │   │   └── scraper.py
+│   │   └── youtube/
+│   │       ├── __init__.py
+│   │       ├── channels.py
+│   │       ├── resolver.py
+│   │       ├── scraper.py
+│   │       └── selector.py
+│   └── services/
+│       ├── __init__.py
+│       ├── process_curator.py
+│       ├── process_dashboard.py
+│       ├── process_digest.py
+│       ├── process_events_email.py
+│       ├── process_youtube_email.py
+│       └── retry_utils.py
+├── docs/
+│   ├── context_snapshots/
+│   ├── DEMO_PHASES.md
+│   ├── FUTURE_FEATURES.md
+│   ├── INTERACTIVE_WINDOW.md
+│   ├── MONITORING_PHASES.md
+│   ├── MONITORING_QUERIES.md
+│   ├── PROJECT_STATUS.md
+│   └── user_context.md
+├── infra/
+│   ├── Dockerfile
+│   └── docker-compose.yml
+├── scripts/
+│   ├── create_tables.py
+│   ├── demo_app.py
+│   ├── get_channel_id.py
+│   └── monitoring_report.py
+├── templates/
+│   └── dashboard.html
+├── tests/
+│   ├── __init__.py
+│   ├── test_event_scraper.py
+│   └── test_youtube_scraper.py
+├── .streamlit/
+│   ├── config.toml
+│   └── secrets.toml.example
+├── .env.example
+├── .gitignore
+├── .python-version
+├── AGENTS.md
+├── Makefile
+├── README.md
+├── ai-event-agreegator.code-workspace
+├── main.py
+├── pyproject.toml
+└── uv.lock
+```
+
+## Path Lifecycle Ledger
+
+Major paths only. Use this ledger for creates, removes, moves, and renames that materially affect project structure.
+
+| Path | Kind | Created | Removed | Notes |
+|---|---|---|---|---|
+| `agent/` | dir | 2026-03-10 |  | Initial project scaffold. |
+| `app/` | dir | 2026-03-10 |  | Core application package. |
+| `app/dashboard/` | dir | 2026-03-12 |  | Static dashboard rendering from real DB data. |
+| `app/db/` | dir | 2026-03-10 |  | Scaffolded initially; DB models and repository added later the same day. |
+| `app/db/bootstrap.py` | file | 2026-03-20 |  | Shared DB/table bootstrap logic reused by the CLI init script and the Streamlit demo app. |
+| `app/models/` | dir | 2026-03-10 |  | Shared app-level models package; currently minimal. |
+| `app/scrapers/events/` | dir | 2026-03-10 |  | Event scraping added in session 2. |
+| `app/email/` | dir | 2026-03-11 |  | HTML email rendering package. |
+| `app/monitoring/` | dir | 2026-03-12 |  | Pipeline monitoring foundation v1. |
+| `app/monitoring/queries.py` | file | 2026-03-12 |  | Reusable monitoring analytics layer. |
+| `app/monitoring/summary.py` | file | 2026-03-12 |  | Rule-based monitoring focus-area summary layer. |
+| `app/services/process_dashboard.py` | file | 2026-03-12 |  | Generates the real-data dashboard artifact from DB state after each pipeline run. |
+| `app/services/retry_utils.py` | file | 2026-03-12 |  | Shared retry helper used by API-heavy stages for retry/backoff telemetry. |
+| `docs/` | dir | 2026-03-10 |  | Introduced during project cleanup; houses project docs. |
+| `docs/context_snapshots/` | dir | 2026-03-12 |  | Timestamped markdown archives of `docs/user_context.md`. |
+| `docs/DEMO_PHASES.md` | file | 2026-03-12 |  | Demo roadmap and implementation checklist. |
+| `docs/FUTURE_FEATURES.md` | file | 2026-03-12 |  | Append-only future feature tracker. |
+| `docs/INTERACTIVE_WINDOW.md` | file | 2026-03-10 |  | Created at repo root, moved into `docs/` during cleanup. |
+| `docs/MONITORING_PHASES.md` | file | 2026-03-12 |  | Monitoring roadmap and implementation checklist. |
+| `docs/MONITORING_QUERIES.md` | file | 2026-03-12 |  | SQL reference and query-surface documentation for monitoring analytics. |
+| `docs/PROJECT_STATUS.md` | file | 2026-03-10 |  | Created at repo root, moved into `docs/` during cleanup. |
+| `docs/user_context.md` | file | 2026-03-11 |  | Curator personalization context. |
+| `infra/` | dir | 2026-03-10 |  | Infrastructure files moved here during cleanup. |
+| `scripts/` | dir | 2026-03-10 |  | Utility and DB bootstrap scripts. |
+| `scripts/demo_app.py` | file | 2026-03-12 |  | Streamlit demo console over real DB and service flows. |
+| `scripts/monitoring_report.py` | file | 2026-03-12 |  | CLI report for pipeline monitoring. |
+| `templates/` | dir | 2026-03-11 |  | Dashboard HTML assets. |
+| `tests/` | dir | 2026-03-10 |  | Integration tests. |
+| `.streamlit/` | dir | 2026-03-12 |  | Local Streamlit theme configuration for the demo console. |
+| `.streamlit/config.toml` | file | 2026-03-12 |  | Streamlit theme settings for the demo app. |
+| `.streamlit/secrets.toml.example` | file | 2026-03-20 |  | Example secrets payload for Streamlit Community Cloud deployment. |
+| `AGENTS.md` | file | 2026-03-12 |  | Repo-local agent workflow rules. |
+| `Makefile` | file | 2026-03-10 |  | Added during project cleanup. |
+| `main.py` | file | 2026-03-10 |  | Root pipeline entrypoint. |
+| `docker-compose.yml` | file | 2026-03-10 | 2026-03-10 | Replaced by `infra/docker-compose.yml` during project cleanup. |
+| `Dockerfile` | file | 2026-03-10 | 2026-03-10 | Replaced by `infra/Dockerfile` during project cleanup. |
+| `INTERACTIVE_WINDOW.md` | file | 2026-03-10 | 2026-03-10 | Moved to `docs/INTERACTIVE_WINDOW.md` during project cleanup. |
+| `PROJECT_STATUS.md` | file | 2026-03-10 | 2026-03-10 | Moved to `docs/PROJECT_STATUS.md` during project cleanup. |
+
+## Session Log
 
 ---
 
 ## 2026-03-10 — Initial status snapshot
 
-### Folder Hierarchy
-
-```
-ai-event-agreegator/
-├── agent/                          # (empty) future agent logic
-├── app/
-│   ├── db/                         # (empty) database setup, connection
-│   ├── models/                     # (empty) shared app-level models
-│   ├── scrapers/
-│   │   ├── events/                 # (empty) future event scraper
-│   │   └── youtube/
-│   │       ├── __init__.py         # exports: YouTubeScraper, Video, Channel, CHANNELS
-│   │       ├── channels.py         # CHANNELS list (8 pre-configured channels)
-│   │       └── scraper.py          # Channel, Video (Pydantic), YouTubeScraper class
-│   └── services/                   # (empty) future summarisation / LLM services
-├── tests/
-│   └── test_youtube_scraper.py     # integration tests (hits real YouTube RSS)
-├── .env.example                    # DATABASE_URL, OPENAI_API_KEY, Postgres creds
-├── docker-compose.yml              # Postgres 16 + app container
-├── Dockerfile
-├── pyproject.toml                  # Python 3.14, all deps declared
-└── uv.lock
-```
+### Structure changes
+- Baseline repo scaffold established with `agent/`, `app/`, `tests/`, root Docker files, and root project docs before later cleanup moved infrastructure/docs into dedicated directories.
 
 ### What's been built
 
@@ -94,34 +219,8 @@ ai-event-agreegator/
 
 ## 2026-03-10 — EventScraper built
 
-### Folder Hierarchy changes
-`app/scrapers/events/` was empty — now populated:
-
-```
-ai-event-agreegator/
-├── agent/                          # (empty) future agent logic
-├── app/
-│   ├── db/                         # (empty) database setup, connection
-│   ├── models/                     # (empty) shared app-level models
-│   ├── scrapers/
-│   │   ├── events/
-│   │   │   ├── __init__.py         # exports: EventScraper, Event, FEEDS
-│   │   │   ├── feeds.py            # FEEDS list (2 iCal feed URLs)
-│   │   │   └── scraper.py          # Event (Pydantic), EventScraper class
-│   │   └── youtube/
-│   │       ├── __init__.py         # exports: YouTubeScraper, Video, Channel, CHANNELS
-│   │       ├── channels.py         # CHANNELS list (8 pre-configured channels)
-│   │       └── scraper.py          # Channel, Video (Pydantic), YouTubeScraper class
-│   └── services/                   # (empty) future summarisation / LLM services
-├── tests/
-│   ├── test_event_scraper.py       # integration tests (hits real iCal feeds)
-│   └── test_youtube_scraper.py     # integration tests (hits real YouTube RSS)
-├── .env.example                    # DATABASE_URL, OPENAI_API_KEY, Postgres creds
-├── docker-compose.yml              # Postgres 16 + app container
-├── Dockerfile
-├── pyproject.toml                  # added: icalendar>=7.0.3
-└── uv.lock
-```
+### Structure changes
+- Added `app/scrapers/events/` and `tests/test_event_scraper.py`.
 
 ### What was built
 
@@ -273,42 +372,9 @@ FEEDS = [
 
 ## 2026-03-10 — main.py + YouTube Shorts filter + Event deduplication
 
-### Folder hierarchy (current, complete)
-
-```
-ai-event-agreegator/
-├── agent/                          # (empty) future agent logic
-├── app/
-│   ├── __init__.py                 # (empty) package resolution
-│   ├── db/
-│   │   └── __init__.py             # (empty) package resolution
-│   ├── models/
-│   │   └── __init__.py             # (empty) package resolution
-│   ├── scrapers/
-│   │   ├── __init__.py             # (empty) package resolution
-│   │   ├── events/
-│   │   │   ├── __init__.py         # exports: EventScraper, Event, FEEDS
-│   │   │   ├── feeds.py            # FEEDS list — 25 iCal feeds
-│   │   │   └── scraper.py          # Event (Pydantic), EventScraper class
-│   │   └── youtube/
-│   │       ├── __init__.py         # exports: YouTubeScraper, Video, Channel, CHANNELS
-│   │       ├── channels.py         # CHANNELS list (8 pre-configured channels)
-│   │       └── scraper.py          # Channel, Video (Pydantic), YouTubeScraper class
-│   └── services/
-│       └── __init__.py             # (empty) package resolution
-├── tests/
-│   ├── __init__.py                 # (empty) package resolution
-│   ├── test_event_scraper.py       # integration tests (hits real iCal feeds)
-│   └── test_youtube_scraper.py     # integration tests (hits real YouTube RSS)
-├── .env.example
-├── docker-compose.yml
-├── Dockerfile
-├── INTERACTIVE_WINDOW.md           # cheatsheet for VSCode Interactive Window
-├── main.py                         # NEW — runs both scrapers, prints summary
-├── PROJECT_STATUS.md
-├── pyproject.toml
-└── uv.lock
-```
+### Structure changes
+- Added `main.py` at repo root.
+- Added package `__init__.py` files under `app/` and `tests/`.
 
 ### What was built / changed
 
@@ -352,6 +418,11 @@ ai-event-agreegator/
 
 ## 2026-03-10 — DB layer + project cleanup
 
+### Structure changes
+- Created `infra/`, `scripts/`, and `docs/`.
+- Moved root `docker-compose.yml` and `Dockerfile` into `infra/`.
+- Moved root `PROJECT_STATUS.md` and `INTERACTIVE_WINDOW.md` into `docs/`.
+
 ### What was built
 
 **PostgreSQL DB layer (complete)**
@@ -376,33 +447,6 @@ make down     → docker compose -f infra/docker-compose.yml down
 make db-init  → uv run scripts/create_tables.py
 make run      → uv run main.py
 make test     → uv run pytest
-```
-
-### Current folder structure
-```
-ai-event-agreegator/
-├── infra/
-│   ├── docker-compose.yml
-│   └── Dockerfile
-├── scripts/
-│   └── create_tables.py
-├── docs/
-│   ├── PROJECT_STATUS.md
-│   └── INTERACTIVE_WINDOW.md
-├── app/
-│   ├── db/
-│   │   ├── models.py
-│   │   ├── session.py
-│   │   └── repository.py
-│   ├── scrapers/
-│   │   ├── events/
-│   │   └── youtube/
-│   └── services/
-├── tests/
-├── main.py
-├── Makefile
-├── .env.example
-└── pyproject.toml
 ```
 
 ### What works
@@ -659,3 +703,806 @@ ai-event-agreegator/
 2. Wire up APScheduler for automated daily runs
 3. Build FastAPI API layer to serve digest data
 4. Wire dashboard to real API (replace mock data)
+
+---
+
+## 2026-03-12 — Project summary convention update + hierarchy refresh
+
+### Structure changes
+- None. This session only tightened the documentation convention around hierarchy maintenance.
+
+### What was built / changed
+- Updated the top `Convention` block: folder hierarchy/tree must be updated whenever session summaries are updated.
+- Added this appended session entry with an up-to-date hierarchy snapshot of the current repo.
+
+### What works
+- Documentation now explicitly enforces keeping project summary and hierarchy snapshot in sync.
+
+### Errors hit
+- None.
+
+### What's next
+1. Keep appending new entries at the bottom only, including hierarchy updates in each future summary update.
+2. Continue pending product work from the previous session backlog (scheduler, API layer, dashboard data wiring).
+
+---
+
+## 2026-03-12 — Pipeline monitoring foundation (v1) implemented
+
+### Structure changes
+- Added `app/monitoring/`.
+- Added `scripts/monitoring_report.py`.
+
+### What was built
+
+**`app/monitoring/`** (new package)
+- `logging_config.py` — `configure_logging()` sets console + `logs/pipeline.log` handlers via stdlib logging
+- `models.py` — new SQLAlchemy tables: `pipeline_runs`, `pipeline_stage_metrics`, `pipeline_errors` using shared Postgres enum `pipeline_status` (`running/success/partial/failed`)
+- `alerts.py` — `AlertHandler` protocol + `NoopAlertHandler`
+- `tracker.py` — `PipelineTracker.start()`, `finish()`, `abort()`, `record_error()`, `record_stage_metric()`
+- `stage.py` — `StageMonitor` context manager with `attempt()`, `succeed()`, `fail()` and no-op behavior when tracker is `None`
+- `report.py` — terminal report generator for recent runs, stage metrics, and error counts
+- `__init__.py` — exports public monitoring API
+
+**Pipeline + service wiring**
+- `main.py` now:
+  - configures logging at startup
+  - starts `PipelineTracker`
+  - wraps scrape stages in `StageMonitor("youtube_scrape")` and `StageMonitor("events_scrape")`
+  - passes `tracker` into service calls
+  - uses `try/except/finally` with `tracker.finish()` / `tracker.abort(exc)` and guaranteed `db.close()`
+- `app/services/process_digest.py` — added optional `tracker`; wraps digest loop in `StageMonitor("digest_videos")`; per-video failures call `stage.fail(..., item_id=video_id)`
+- `app/services/process_curator.py` — added optional `tracker`; wrapped in `StageMonitor("curator")`
+- `app/services/process_youtube_email.py` — added optional `tracker`; wrapped in `StageMonitor("youtube_email")`
+- `app/services/process_events_email.py` — added optional `tracker`; wrapped in `StageMonitor("events_email")`
+- `app/db/repository.py` — `save_events(..., tracker=None)` now includes `StageMonitor("events_enrichment")` for per-event summary generation failures
+
+**DB + tooling updates**
+- `app/db/models.py` now imports monitoring models at bottom:
+  - `from app.monitoring import models as _monitoring_models  # noqa`
+- `scripts/create_tables.py` now prints dynamic table names from `Base.metadata.tables`
+- `scripts/monitoring_report.py` (new) — CLI for monitoring report (`--limit` supported)
+- `Makefile` target added:
+  - `make monitoring-report` → `uv run scripts/monitoring_report.py`
+
+### What works
+- New monitoring tables are created via `scripts/create_tables.py`:
+  - `pipeline_runs`, `pipeline_stage_metrics`, `pipeline_errors`
+- Monitoring report CLI runs successfully:
+  - returns `No pipeline runs found.` on an empty monitoring dataset
+- Python compile check passed for updated/new modules:
+  - `.venv/bin/python -m compileall app scripts main.py`
+- `StageMonitor` no-tracker compatibility works (no-op behavior confirmed in a direct smoke check)
+
+### Errors hit
+- Running `uv run ...` inside sandbox failed due UV cache permissions (`/Users/jon/.cache/uv`) — resolved by running the check with escalation
+- Initial `scripts/monitoring_report.py` run failed with `UndefinedTable: pipeline_runs` because new tables were not created yet — resolved by running `scripts/create_tables.py` and re-running report
+
+### What's next
+1. Run `main.py` once end-to-end in your local environment to generate the first `pipeline_runs` row and stage/error metrics.
+2. Validate `logs/pipeline.log` output and confirm expected run status transitions (`success`/`partial`/`failed`).
+3. Add optional retention maintenance for `pipeline_errors` (manual SQL or scheduled cleanup later).
+4. Add a real alert implementation (e.g., Slack) by implementing `AlertHandler`.
+
+---
+
+## 2026-03-12 — Future feature tracking + repo-local agent instructions
+
+### Structure changes
+- Added `AGENTS.md`.
+- Added `docs/FUTURE_FEATURES.md`.
+
+### What was built / changed
+- Added `AGENTS.md` at repo root with repo-local instructions so any coding agent can consistently:
+  - update `docs/PROJECT_STATUS.md` after work sessions
+  - update `docs/FUTURE_FEATURES.md` whenever future work ideas come up
+- Added `docs/FUTURE_FEATURES.md` as an append-only future feature tracker with:
+  - a top `Current Backlog` section for quick agent handoff
+  - dated log entries at the bottom
+  - initial feature ideas seeded from project history and recent monitoring discussions
+- Added `logs/` to `.gitignore` because `logs/pipeline.log` is runtime output, not source.
+
+### What works
+- There is now a repo-local mechanism for future agents to follow, instead of relying only on a convention buried inside `docs/PROJECT_STATUS.md`.
+- Future feature ideas now have a dedicated place to live without mixing them into completed work history.
+
+### Errors hit
+- None this session.
+
+### What's next
+1. Keep `docs/FUTURE_FEATURES.md` current whenever new future work is mentioned in planning, implementation, review, or debugging.
+2. Continue using `docs/PROJECT_STATUS.md` only for completed work/session history.
+3. When a backlog item ships, mark it in `docs/FUTURE_FEATURES.md` and record the shipped work in `docs/PROJECT_STATUS.md`.
+
+---
+
+## 2026-03-12 — Project status hierarchy tracking refactored
+
+### Structure changes
+- None to repo paths. This session changed the documentation model only.
+
+### What was built / changed
+- Reworked `docs/PROJECT_STATUS.md` into:
+  - one top-level `Current Hierarchy` section
+  - one top-level `Path Lifecycle Ledger`
+  - one append-only `Session Log`
+- Removed repeated full-tree snapshots from historical session entries and replaced them with short `Structure changes` sections where needed.
+- Updated `AGENTS.md` so future agents maintain the canonical hierarchy and lifecycle ledger instead of pasting full trees into every session entry.
+
+### What works
+- `docs/PROJECT_STATUS.md` now has exactly one canonical hierarchy section near the top.
+- Major path create/remove/move history now has a dedicated ledger instead of being scattered across repeated snapshots.
+- Historical session notes remain in place while structure tracking is less noisy and easier to maintain.
+
+### Errors hit
+- None.
+
+### What's next
+1. Keep the top hierarchy current when structure changes.
+2. Update the lifecycle ledger whenever a major path is created, moved, renamed, or removed.
+3. Keep future session entries append-only and use `Structure changes` only when structure actually changes.
+
+---
+
+## 2026-03-12 — Future features doc now includes shipped capabilities
+
+### Structure changes
+- None. This session changed documentation content only.
+
+### What was built / changed
+- Updated `docs/FUTURE_FEATURES.md` to include a top-level `Implemented Features` section in addition to the existing `Current Backlog`.
+- Seeded the new implemented-features section with major capabilities already shipped, using this status log as the source of truth.
+- Updated `AGENTS.md` so future agents maintain both:
+  - shipped capabilities in `Implemented Features`
+  - upcoming work in `Current Backlog`
+
+### What works
+- `docs/FUTURE_FEATURES.md` now answers both:
+  - what the project already has
+  - what is still planned
+
+### Errors hit
+- None.
+
+### What's next
+1. Move backlog items into `Implemented Features` when they ship.
+2. Keep `docs/PROJECT_STATUS.md` as the detailed historical source and `docs/FUTURE_FEATURES.md` as the quick capability/backlog summary.
+
+---
+
+## 2026-03-12 — Monitoring query layer + analytics CLI
+
+### Structure changes
+- Added `app/monitoring/queries.py`.
+- Added `docs/MONITORING_QUERIES.md`.
+
+### What was built / changed
+- Added `app/monitoring/queries.py` as the reusable monitoring analytics layer with parameterized helpers for:
+  - recent runs
+  - overall health
+  - success and duration trends
+  - slowest runs
+  - stage performance and variance
+  - failure analysis
+  - throughput
+  - before/after comparison
+  - generic stage-grouped analytics such as AI workload and status distribution
+- Reworked `app/monitoring/report.py` to format human-readable analytics reports using the new query layer instead of embedding query logic directly.
+- Expanded `scripts/monitoring_report.py` into a multi-command CLI:
+  - `recent-runs`
+  - `health`
+  - `stage-performance`
+  - `failures`
+  - `throughput`
+  - `compare`
+- Added `docs/MONITORING_QUERIES.md` with:
+  - supported named queries
+  - SQL reference examples
+  - interpretation notes
+  - known caveats
+- Added `Monitoring Query Layer` to implemented capabilities and `Monitoring Telemetry Extension` to future backlog in `docs/FUTURE_FEATURES.md`.
+
+### What works
+- Query helpers compile and import successfully.
+- `scripts/monitoring_report.py --help` now exposes the analytics command families.
+- Stage grouping degrades safely to `unknown` for unseen future stage names.
+
+### Errors hit
+- None.
+
+### What's next
+1. Run the new monitoring commands against real monitoring data once pipeline runs exist.
+2. Add telemetry fields later for truthful cost/model/provider analytics rather than inferring cost from duration.
+3. Reuse this query layer in future API, dashboard, or MCP surfaces instead of duplicating SQL.
+
+---
+
+## 2026-03-12 — Makefile shortcuts for monitoring commands
+
+### Structure changes
+- None. This session changed developer workflow commands only.
+
+### What was built / changed
+- Expanded `Makefile` monitoring commands so common monitoring checks no longer require remembering the CLI subcommands.
+- Kept `make monitoring-report` as the default recent-runs view.
+- Added dedicated Make targets for:
+  - `monitoring-runs`
+  - `monitoring-health`
+  - `monitoring-stage-performance`
+  - `monitoring-failures`
+  - `monitoring-throughput`
+  - `monitoring-compare`
+- `monitoring-compare` now accepts `BEFORE_START`, `BEFORE_END`, `AFTER_START`, and `AFTER_END` variables so period comparison can be run from `make` without editing commands manually.
+
+### What works
+- Common monitoring views now have direct `make` aliases.
+- Period comparison can be launched through `make` with explicit date variables.
+
+### Errors hit
+- None.
+
+### What's next
+1. Use the new Make targets as the normal operator entrypoint for monitoring checks.
+2. Add a `help` target later if the Makefile grows enough that command discovery becomes a friction point.
+
+---
+
+## 2026-03-12 — Monitoring phases checklist + summary layer kickoff
+
+### Structure changes
+- Added `docs/MONITORING_PHASES.md`.
+- Added `app/monitoring/summary.py`.
+
+### What was built / changed
+- Added `docs/MONITORING_PHASES.md` as the monitoring roadmap checklist so future agents can continue phase work without reconstructing it from chat history.
+- Updated `AGENTS.md` so monitoring work now also requires keeping `docs/MONITORING_PHASES.md` current.
+- Started Phase 0 by adding `git_sha` and optional `config_version` attribution to `pipeline_runs`.
+- Updated `PipelineTracker.start()` to auto-capture the current git SHA and optional `PIPELINE_CONFIG_VERSION` from env.
+- Updated `scripts/create_tables.py` to add the new run-metadata columns to existing Postgres tables via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`.
+- Added normalized stage-efficiency analytics to `app/monitoring/queries.py`:
+  - `seconds_per_item`
+  - `items_per_minute`
+  - normalized before/after comparison
+- Expanded monitoring reports so stage-performance and compare outputs include normalized efficiency, not just raw duration.
+- Added `app/monitoring/summary.py` as the first deterministic monitoring summary layer:
+  - bottleneck detection
+  - regression detection
+  - instability warnings
+  - reliability warnings
+  - incomplete-observability warnings
+  - recent-error focus
+- Expanded the monitoring CLI with `summary --days N`.
+- Added `make monitoring-summary`.
+- Updated `docs/MONITORING_QUERIES.md` and `docs/FUTURE_FEATURES.md` to reflect the new operator surface and the next monitoring backlog.
+
+### What works
+- Recent-run reports now surface run attribution metadata.
+- Monitoring now supports normalized optimization analysis instead of raw duration only.
+- A deterministic summary layer can now tell the operator where to focus next without using an LLM.
+- The monitoring roadmap is now captured in a persistent checklist file rather than only in chat.
+
+### Errors hit
+- `.env.example` patch context mismatch due to file drift — resolved by reading the file and patching against the live contents.
+
+### What's next
+1. Implement ranking history persistence so score drift and ranking volatility become measurable.
+2. Add digest freshness/version tracking so stale summaries are visible in ranking analysis.
+3. Add batch/retry telemetry so batching and API optimizations can be measured honestly.
+
+---
+
+## 2026-03-12 — Ranking history persistence + digest freshness
+
+### Structure changes
+- None. This session changed schema, persistence, analytics, and docs, but did not add new major paths.
+
+### What was built / changed
+- Added `CuratorRun` and `CuratorRanking` ORM models so curator scoring history persists across runs.
+- Added digest metadata fields on `Digest`:
+  - `digest_version`
+  - `digest_generated_at`
+  - `source_updated_at`
+  - `content_last_seen_at`
+  - `model_name`
+  - `prompt_version`
+- Updated `scripts/create_tables.py` to backfill and alter existing `digests` rows for the new metadata fields.
+- Updated `PipelineTracker`-adjacent digest flow so existing digests are now touched when the source item is seen again, instead of only recording the original generation timestamp forever.
+- Updated `process_digest()` to stamp new digests with version/freshness/model metadata.
+- Updated `process_curator()` to:
+  - rank the last 7 days of digests instead of only same-day digests
+  - persist each curator run and ranked item
+- Updated `process_youtube_email()` to reuse the latest saved curator run for the current pipeline run when available, avoiding a redundant ranking API call.
+- Added monitoring analytics for:
+  - ranking drift
+  - digest freshness
+- Expanded monitoring CLI and Makefile with:
+  - `ranking-drift`
+  - `digest-freshness`
+  - `make monitoring-ranking-drift`
+  - `make monitoring-digest-freshness`
+- Extended the rule-based monitoring summary so it can surface ranking drift and stale-ranked-digest warnings when enough data exists.
+- Updated `docs/MONITORING_PHASES.md`, `docs/MONITORING_QUERIES.md`, and `docs/FUTURE_FEATURES.md` to reflect the shipped state.
+
+### What works
+- The database now contains `curator_runs` and `curator_rankings` tables.
+- Digest freshness metadata is backfilled and queryable.
+- `scripts/monitoring_report.py ranking-drift ...` works and handles the empty-history case cleanly.
+- `scripts/monitoring_report.py digest-freshness ...` works against current DB data.
+- `make monitoring-ranking-drift` and `make monitoring-digest-freshness` resolve to the expected commands.
+
+### Errors hit
+- Running schema creation and the new ranking/freshness reports in parallel caused a race where the reports executed before the new tables were created. The DB schema itself was correct; rerunning the reports after table creation resolved it.
+
+### What's next
+1. Add batch/retry telemetry so API-heavy stages can be optimized with evidence instead of inference.
+2. Detect when stale digests dominate top-ranked results, not just when stale digests are present.
+3. Add stronger ranking-stability summaries once enough persisted curator history exists.
+
+---
+
+## 2026-03-12 — Remaining monitoring phases completed
+
+### Structure changes
+- Added `app/services/retry_utils.py`.
+
+### What was built / changed
+- Added stage-level telemetry fields to `pipeline_stage_metrics` for:
+  - `batch_size`
+  - `total_batches`
+  - `retry_count`
+  - `backoff_count`
+  - `concurrency_level`
+  - `model_name`
+  - `prompt_version`
+- Extended `StageMonitor` and `PipelineTracker` so stages can record the new telemetry without changing the core monitoring lifecycle.
+- Added `app/services/retry_utils.py` and wired retry/backoff handling into API-heavy stages:
+  - `digest_videos`
+  - `events_enrichment`
+  - `curator`
+  - `youtube_email`
+  - `events_email`
+- Added stage-performance analytics for:
+  - p95 / p99 latency
+  - batch telemetry
+  - retry summary
+  - focus-signal snapshot
+  - stale top-rank dominance
+- Expanded the CLI with `batch-telemetry`.
+- Expanded `Makefile` with:
+  - `monitoring-batch-telemetry`
+  - `help`
+- Strengthened the rule-based monitoring summary so it now:
+  - ranks focus items by severity
+  - scores regressions using both percentage and absolute increase
+  - detects when stale digests dominate the latest top-ranked items
+- Updated monitoring docs/checklists so nearly all monitoring phases are now marked complete.
+
+### What works
+- Monitoring can now report p95/p99 stage latency.
+- Monitoring can now report batch/retry/concurrency/model/prompt telemetry for new runs.
+- `make help` exposes the monitoring command surface directly.
+- Summary output now includes ranking-drift signals and can detect stale-top-ranked dominance when the data supports it.
+
+### Errors hit
+- Running schema migration and telemetry-heavy reports in parallel caused a transient race where reports queried new columns before the `ALTER TABLE` finished. Rerunning after schema creation completed resolved it.
+- Existing historical runs predate the new batch/retry telemetry columns, so telemetry sections show zero/default values until fresh runs are recorded with the new instrumentation.
+
+### What's next
+1. Reuse the monitoring query layer in future API, dashboard, or MCP surfaces instead of re-implementing reporting logic.
+2. Add provider/token/cost telemetry later only if truthful cost analytics becomes a real requirement.
+
+---
+
+## 2026-03-12 — Run bootstrap and abort-path hardening
+
+### Structure changes
+- None. This session changed workflow and failure handling only.
+
+### What was built / changed
+- Updated `Makefile` so `make run` now depends on `db-init`, ensuring schema bootstrap runs before the pipeline starts.
+- Hardened `PipelineTracker.abort()` to roll back the SQLAlchemy session before abort handling, which prevents a secondary `PendingRollbackError` after a flush failure.
+
+### What works
+- `make -n run` now expands to:
+  - `uv run scripts/create_tables.py`
+  - `uv run main.py`
+- The abort path is now resilient to session rollback state after insert/flush failures.
+
+### Errors hit
+- The original `make run` failure happened because the pipeline started writing new `pipeline_stage_metrics` columns before the local DB schema had been updated with those columns.
+
+### What's next
+1. Re-run `make run` now that schema bootstrap is chained automatically.
+2. Use the next fresh run to populate the new batch/retry telemetry columns.
+
+---
+
+## 2026-03-12 — YouTube Shorts cache + scrape telemetry
+
+### Structure changes
+- None. This session added a DB table and telemetry columns, but no new repo paths.
+
+### What was built / changed
+- Added `youtube_video_classifications` as a persisted cache for YouTube Shorts classification results.
+- Updated `app/scrapers/youtube/scraper.py` so Shorts checks now:
+  - reuse cached classifications across runs
+  - reuse one `httpx.Client` per scrape pass instead of opening a fresh request client per check
+  - avoid caching network failures as false negatives
+- Added a dedicated `youtube_short_checks` monitoring stage in the main pipeline.
+- Extended `pipeline_stage_metrics` with generic execution counters:
+  - `items_skipped`
+  - `cache_hit_count`
+  - `network_call_count`
+- Extended recent-runs and telemetry reports so scrape stages can now show cache hits, network calls, and skipped items instead of only duration.
+- Extended the rule-based monitoring summary so it can flag an expensive Shorts-check path when network calls stay high and keep-rate stays low.
+- Updated `scripts/create_tables.py` so existing Postgres tables gain the new monitoring columns and the new Shorts-classification table.
+- Updated monitoring docs to record the new Shorts cache and scrape telemetry behavior.
+
+### What works
+- Schema bootstrap now creates `youtube_video_classifications`.
+- Monitoring reports compile and run with the new stage-metric counters after schema bootstrap.
+- The Shorts-classification path is now capable of recording:
+  - total classification attempts
+  - filtered Shorts
+  - cache hits
+  - fresh network calls
+- Network classification failures no longer poison the cache.
+
+### Errors hit
+- Running `create_tables.py` and read-heavy monitoring reports in parallel caused a Postgres deadlock while altering `pipeline_stage_metrics`. Running schema bootstrap first and the reports second resolved it.
+- The latest successful monitoring run still predates this Shorts-cache change, so `youtube_short_checks` will not appear in reports until the next fresh pipeline run is recorded.
+
+### What's next
+1. Run the pipeline again so `youtube_short_checks` telemetry is recorded on a fresh run.
+2. Compare the next run against the current baseline to confirm Shorts cache hits replace repeated network calls.
+3. If Shorts checks are still a major scrape bottleneck after the cache warms up, add bounded concurrency for uncached classifications.
+
+---
+
+## 2026-03-12 — Real dashboard rendering wired to DB data
+
+### Structure changes
+- Added `app/dashboard/`.
+- Added `app/services/process_dashboard.py`.
+
+### What was built / changed
+- Added `app/dashboard/render.py` to treat `templates/dashboard.html` as a reusable source template and inject live JSON payload data at render time.
+- Reworked `templates/dashboard.html` so it no longer depends on hardcoded mock arrays:
+  - reads injected `window.__STACK_DATA__`
+  - renders empty states if no videos/events exist yet
+  - uses generated timestamp and recipient name from injected payload
+- Added `process_dashboard(db, tracker=None)` which:
+  - loads the latest curator run rankings for video cards
+  - joins digest + YouTube metadata for links, summaries, and channel info
+  - loads upcoming events from the DB for the events grid
+  - writes a generated static artifact to `artifacts/dashboard.html`
+- Wired `process_dashboard()` into `main.py`, so each full pipeline run now refreshes the dashboard artifact automatically.
+- Added `make dashboard` for regenerating the dashboard from current DB data without running the whole pipeline.
+- Added `artifacts/` to `.gitignore` so generated HTML is treated as runtime output, not source.
+
+### What works
+- The dashboard now renders from real database data instead of static mock content.
+- Rendering works without external API calls; it only reads the local DB state and writes `artifacts/dashboard.html`.
+- The generated artifact currently contains:
+  - 10 ranked videos from the latest curator run
+  - 75 upcoming events from the next 14 days
+- Each future `make run` now refreshes the dashboard along with the rest of the pipeline.
+- `make dashboard` is the intended developer shortcut, but direct `uv run ...` invocation remains the fallback when `make` hits local `uv` cache permission issues in restricted execution environments.
+
+### Errors hit
+- `make dashboard` hit the same local `uv` cache permission issue seen earlier in sandboxed execution. Running the underlying `uv run ...` commands directly succeeded.
+- The generated dashboard revealed a content-quality issue rather than a render bug: `tools_concepts` is still stored as a raw text blob, so simple comma-splitting produces noisy tags for some videos.
+
+### What's next
+1. Tighten `tools_concepts` storage/rendering so dashboard tags are cleaner and more structured.
+2. Add a small dashboard stage to monitoring if dashboard generation time/quality becomes operationally important.
+3. Reuse the same payload/query logic later when the FastAPI layer replaces the static artifact with a live endpoint.
+
+---
+
+## 2026-03-12 — Streamlit demo console + demo phases
+
+### Structure changes
+- Added `docs/DEMO_PHASES.md`.
+- Added `scripts/demo_app.py`.
+
+### What was built / changed
+- Added `docs/DEMO_PHASES.md` as the durable demo roadmap/checklist, similar to the monitoring phases file.
+- Updated `AGENTS.md` so future agents now also keep `docs/DEMO_PHASES.md` current when demo/UI work advances.
+- Added `streamlit` to the project dependencies.
+- Added `scripts/demo_app.py` as a real demo shell over the existing repo:
+  - real DB metrics
+  - latest ranked videos from the latest curator run
+  - upcoming events from the DB
+  - recent digests
+  - inline dashboard preview from `artifacts/dashboard.html`
+  - live action buttons for:
+    - dashboard render
+    - YouTube digest send
+    - events digest send
+- Updated `process_youtube_email()` and `process_events_email()` so they now support a recipient override and return success/failure booleans, which the demo app uses for honest action feedback.
+- Updated `process_dashboard()` to return the artifact path on success so the demo app can confirm output and preview it.
+- Added `make demo`.
+- Fixed `make dashboard` to use `uv run python -c ...` instead of the invalid `uv run -c ...` form.
+
+### What works
+- `scripts/demo_app.py` imports successfully under the project environment.
+- The demo app reuses the real pipeline services instead of duplicating ranking/email/dashboard logic in the UI layer.
+- Dashboard rendering was verified through the same service path the demo app uses.
+- `make -n demo` now resolves to `uv run streamlit run scripts/demo_app.py`.
+
+### Errors hit
+- A syntax error in `app/services/process_youtube_email.py` surfaced during compile verification after the new demo work started. The issue was a malformed `try/except` indentation block in the curator-fallback path; fixing that restored the service and the demo app import path.
+
+### What's next
+1. Run `make demo` locally and verify the Streamlit UI flow end-to-end.
+2. Verify the demo app can send both digest emails successfully with your current env vars.
+3. Decide whether to add demo-only profile override next or keep the demo focused on the current real personalization path.
+
+---
+
+## 2026-03-12 — Demo app layout rebuild + env-backed email readiness
+
+### Structure changes
+- None. This session rebuilt the existing demo UI and startup path but did not add new repo paths.
+
+### What was built / changed
+- Recreated `scripts/demo_app.py` after an interrupted edit left the file missing.
+- Reworked the Streamlit page order so it now leads with:
+  1. dashboard preview
+  2. demo actions
+  3. metrics
+  4. ranked/supporting DB data
+- Replaced the earlier plain layout with a more intentional visual treatment:
+  - editorial hero block
+  - card-based sections
+  - stronger spacing and typography
+  - status chips for env readiness
+- Updated the demo app startup path to call `load_dotenv()` so the Streamlit process now reads the same local `.env` file as `main.py`.
+- Added visible env-readiness checks for:
+  - `OPENAI_API_KEY`
+  - `GMAIL_SENDER`
+  - `GMAIL_APP_PASSWORD`
+  - `GMAIL_RECIPIENT`
+- Tightened the send-action feedback so the UI now blocks obviously invalid email attempts earlier and points the operator to terminal logs when the underlying service fails.
+- Escaped DB-backed strings inside the custom HTML blocks so unusual titles/summaries do not break the Streamlit page markup.
+
+### What works
+- `scripts/demo_app.py` compiles and imports successfully again.
+- The demo app now uses the same local env-loading path as the main pipeline, which addresses the most likely cause of the earlier Streamlit-only email failures.
+- The dashboard preview is now the top visual element on the page, matching the intended demo flow.
+- The action area now surfaces config readiness before the operator tries to send email.
+
+### Errors hit
+- The earlier demo app file was accidentally removed during a rewrite and had to be restored.
+- The previous Streamlit build likely failed email sends because it did not load `.env`, unlike `main.py`; this session corrected that startup mismatch.
+
+### What's next
+1. Run `make demo` and retry both email actions from the rebuilt UI.
+2. If email still fails, inspect the terminal logs now that the app shares the same env-loading path as `main.py`.
+3. If the rebuilt layout is directionally right, do a final visual polish pass focused only on demo-day presentation rather than feature expansion.
+
+---
+
+## 2026-03-12 — Streamlit theme + native dashboard-style redesign
+
+### Structure changes
+- Added `.streamlit/config.toml`.
+
+### What was built / changed
+- Added `.streamlit/config.toml` so the demo app now has a project-local Streamlit theme instead of depending only on ad hoc CSS.
+- Reworked `scripts/demo_app.py` again to follow a more Streamlit-native dashboard pattern:
+  - lighter CSS
+  - native bordered containers
+  - themed `st.metric` cards
+  - tabs for supporting records
+  - pills for channel/tag presentation
+  - tighter sidebar sections
+- Kept the user-requested order:
+  1. dashboard preview
+  2. demo actions
+  3. metrics
+  4. ranked/supporting data
+- Replaced the earlier over-styled layout with a cleaner presentation better aligned with Streamlit’s strengths:
+  - hero + status rail
+  - dashboard preview container
+  - action panel with tooltips
+  - sidebar control/context rail
+- Added more widget-level `help=` text in the demo action area so the UI explains itself without extra clutter.
+
+### What works
+- `scripts/demo_app.py` compiles and imports successfully after the redesign.
+- Verified the installed Streamlit version exposes the UI primitives used in the redesign:
+  - `st.pills`
+  - `st.link_button`
+- The demo shell now uses both a project theme file and scoped CSS instead of trying to force the entire experience through one custom HTML layer.
+
+### Errors hit
+- A quick compatibility probe initially failed because this machine does not expose bare `python` on `PATH`; rerunning through `uv run python` resolved it.
+
+### What's next
+1. Run `make demo` and validate the visual direction in the browser, not just by import/compile checks.
+2. If needed, do one more focused pass on spacing/typography only, without changing the demo flow again.
+3. If the visuals are now stable, move to demo-day operator polish rather than more structural UI changes.
+
+---
+
+## 2026-03-12 — Streamlit context editor + runtime curator context loading
+
+### Structure changes
+- None. This session changed existing curator/demo behavior but did not add new repo paths.
+
+### What was built / changed
+- Updated `agent/curator_agent.py` so curator context is no longer frozen at import time:
+  - added `load_user_context()`
+  - added `save_user_context()`
+  - added `build_system_prompt()`
+  - `run()` now reads `docs/user_context.md` at call time
+- Updated `app/services/process_curator.py` to return the saved `CuratorRun | None`, which makes it usable as a real action inside the demo app.
+- Added a new `Ranking Context Editor` section to `scripts/demo_app.py`:
+  - large text area seeded from `docs/user_context.md`
+  - `Save Context` action
+  - `Save, Re-rank, Refresh Dashboard` action
+- The combined context action now:
+  1. writes the edited text back to `docs/user_context.md`
+  2. runs the curator against recent digests
+  3. refreshes the dashboard artifact so the personalization change is visible immediately
+- Added explicit UI copy clarifying that:
+  - YouTube ranking/dashboard depend on curator context
+  - events email does not
+
+### What works
+- Curator context edits no longer require restarting the Streamlit app to affect future ranking runs.
+- `scripts/demo_app.py` imports successfully with the new context editor.
+- The demo app now supports a coherent personalization flow:
+  - edit context
+  - rerank
+  - refresh dashboard
+  - then send YouTube digest
+- Demo-app email delivery was user-verified as working after the earlier `.env` fix.
+
+### Errors hit
+- A small indentation bug in the events-send branch of `scripts/demo_app.py` surfaced during compile verification and was fixed before shipping.
+
+### What's next
+1. Use the new context editor to test whether curator output quality improves with tighter profile text.
+2. If needed later, add a safer temporary override mode instead of directly editing `docs/user_context.md`.
+3. Keep the demo flow explicit: save context, rerank, then send YouTube digest.
+
+---
+
+## 2026-03-12 — Context snapshot archive added
+
+### Structure changes
+- Added `docs/context_snapshots/`.
+
+### What was built / changed
+- Added `snapshot_user_context()` in `agent/curator_agent.py` so the current curator context can be archived as a timestamped markdown file.
+- Added an `Archive Context Snapshot` action to the Streamlit context editor in `scripts/demo_app.py`.
+- Created the first archived snapshot from the current profile text at:
+  - `docs/context_snapshots/2026-03-12_132257_initial-streamlit-context.md`
+
+### What works
+- The current `docs/user_context.md` can now be preserved before edits without manual file copying.
+- The archive path uses timestamped markdown files, which is simple to inspect and safe to diff.
+- `scripts/demo_app.py` and `agent/curator_agent.py` compile successfully after the snapshot workflow was added.
+
+### Errors hit
+- None this session.
+
+### What's next
+1. Use the archive button before making major demo-profile edits.
+2. If snapshot volume grows, add a small sidebar list of recent snapshots later instead of changing the archive format now.
+
+---
+
+## 2026-03-17 — Progress docs audit
+
+### Structure changes
+- None. This session was a documentation/state audit only.
+
+### What was built / changed
+- Audited the current repo structure, demo checklist, and feature summary against the actual codebase.
+- Added `Context Snapshot Archive` to the implemented-features summary in `docs/FUTURE_FEATURES.md`, which had been shipped but not yet listed there.
+- Confirmed `docs/context_snapshots/` contains the current saved context archives and is already represented in the project status structure tracking.
+
+### What works
+- `docs/PROJECT_STATUS.md` is aligned with the current major source structure.
+- `docs/DEMO_PHASES.md` reflects the shipped Streamlit demo, live email sending, context editor, and snapshot flow.
+- `docs/FUTURE_FEATURES.md` now includes the full set of shipped demo-related capabilities, including context snapshots.
+
+### Errors hit
+- None.
+
+### What's next
+1. Keep appending new dated entries only when actual code or workflow changes happen.
+2. If the demo flow changes again, update `docs/DEMO_PHASES.md` and the capability summary in the same session.
+
+---
+
+## 2026-03-20 — README run guide added
+
+### Structure changes
+- None. This session updated documentation only.
+
+### What was built / changed
+- Replaced the empty `README.md` with a practical run guide for the current project.
+- Documented the main workflows:
+  - `make run`
+  - `make db-init`
+  - `make dashboard`
+  - `make demo`
+  - `make test`
+  - monitoring report targets
+- Added setup instructions for `uv`, local `.env`, Docker-backed Postgres, and using an external Postgres instance instead of Docker.
+- Added an environment-variable reference covering the vars the code currently reads:
+  - `DATABASE_URL`
+  - `OPENAI_API_KEY`
+  - `GMAIL_SENDER`
+  - `GMAIL_RECIPIENT`
+  - `GMAIL_APP_PASSWORD`
+  - `WEBSHARE_PROXY_USERNAME`
+  - `WEBSHARE_PROXY_PASSWORD`
+  - `PIPELINE_CONFIG_VERSION`
+  - `DASHBOARD_RECIPIENT_NAME`
+  - Docker Compose `POSTGRES_*`
+- Documented the `monitoring-compare` Make variables:
+  - `BEFORE_START`
+  - `BEFORE_END`
+  - `AFTER_START`
+  - `AFTER_END`
+
+### What works
+- The repo now has a usable top-level README instead of a blank file.
+- Another agent or collaborator can see the expected setup path, supported run commands, and which variables are required vs optional without re-reading the codebase.
+
+### Errors hit
+- None.
+
+### What wasn't verified
+- No runtime commands were executed in this session, so the README was validated against source code paths and Make targets rather than by running the full pipeline.
+
+### What's next
+1. If the env surface changes again, update `README.md`, `.env.example`, and this status log in the same session.
+2. If email or demo behavior changes, keep the README's variable table aligned with the actual code paths.
+
+---
+
+## 2026-03-20 — Streamlit Cloud deploy hardening
+
+### Structure changes
+- Added `app/db/bootstrap.py` to centralize DB/table bootstrap logic.
+- Added `.streamlit/secrets.toml.example` as a copy/paste template for hosted Streamlit secrets.
+
+### What was built / changed
+- Moved the schema/bootstrap logic out of `scripts/create_tables.py` into `app/db/bootstrap.py` so the same path can be reused by both CLI setup and the Streamlit app.
+- Updated `scripts/create_tables.py` to call the shared bootstrap helper instead of owning its own copy of the SQL patch list.
+- Updated `scripts/demo_app.py` so it:
+  - attempts DB/table bootstrap on startup
+  - surfaces `DATABASE_URL` readiness alongside the existing Gmail/OpenAI checks
+  - shows a hosted-friendly setup screen when DB config/bootstrap fails instead of crashing immediately
+  - warns that context edits and snapshot archives are file-based and therefore ephemeral on hosted Streamlit deploys
+- Updated `.gitignore` to ignore `.streamlit/secrets.toml`.
+- Expanded `README.md` with a Streamlit Community Cloud deploy section covering:
+  - app entrypoint
+  - required secrets
+  - first-run DB bootstrap behavior
+  - hosted limitations for file-backed context editing
+- Updated `docs/DEMO_PHASES.md` to record the new hosted deploy runbook and the graceful setup-state behavior.
+
+### What works
+- The demo shell can now bring a fresh Postgres schema online on first startup instead of requiring a separate manual init step.
+- Hosted deploy failures caused by a missing or unreachable database now produce an operator-readable setup screen instead of a hard crash.
+- The deploy path is documented end-to-end in repo docs, including a secrets template another agent can reuse directly.
+
+### Verification
+- `uv run python -c "import importlib.util; import pathlib; import app.db.bootstrap; path = pathlib.Path('scripts/demo_app.py'); spec = importlib.util.spec_from_file_location('demo_app', path); module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module); print('loaded bootstrap and demo_app')"` — passed
+- Bare-mode Streamlit emitted its normal missing `ScriptRunContext` warning during import verification, which is expected outside `streamlit run`.
+
+### Errors hit
+- None.
+
+### What's next
+1. Deploy the app on Streamlit Community Cloud using `scripts/demo_app.py` and the new secrets template.
+2. Point `DATABASE_URL` at a hosted Postgres instance with real seeded data so the dashboard, rankings, and events sections are populated on first open.
+3. If persistent in-app profile editing matters later, move `docs/user_context.md` storage out of the local filesystem and into a durable backing store.

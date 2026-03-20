@@ -6,6 +6,9 @@ from pydantic import BaseModel
 
 from agent.curator_agent import RankedArticle
 
+MODEL_NAME = "gpt-4o-mini"
+PROMPT_VERSION = "youtube-email-v1"
+
 
 class VideoSection(BaseModel):
     article_id: str   # pass-through — used to pin URL from DB after generation
@@ -68,7 +71,7 @@ def run(ranked_articles: list[RankedArticle], article_digests: dict[str, dict]) 
     )
 
     response = client.responses.parse(
-        model="gpt-4o-mini",
+        model=MODEL_NAME,
         instructions=_SYSTEM_PROMPT,
         input=prompt,
         text_format=YouTubeEmailResult,

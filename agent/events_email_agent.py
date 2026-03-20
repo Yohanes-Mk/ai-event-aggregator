@@ -6,6 +6,9 @@ from pydantic import BaseModel
 
 from app.db.models import Event
 
+MODEL_NAME = "gpt-4o-mini"
+PROMPT_VERSION = "events-email-v1"
+
 
 class EventSection(BaseModel):
     event_key: str       # "{title}||{start_time}" — used to pin URL from DB after generation
@@ -66,7 +69,7 @@ def run(events: list[Event]) -> EventsEmailResult:
     )
 
     response = client.responses.parse(
-        model="gpt-4o-mini",
+        model=MODEL_NAME,
         instructions=_SYSTEM_PROMPT,
         input=prompt,
         text_format=EventsEmailResult,

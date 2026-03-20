@@ -11,3 +11,11 @@ wheels/
 
 # Environment variables
 .env
+.streamlit/secrets.toml
+
+# Local runtime output
+logs/
+artifacts/
+
+# Local Claude tooling state
+.claude/
